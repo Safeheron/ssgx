@@ -1,0 +1,50 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "release-ssgx-config",
+      "description": "configuration for building and installing ssgx",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/release-ssgx-config",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_INSTALL_PREFIX": "/opt/safeheron/ssgx",
+        "CMAKE_PREFIX_PATH": "/opt/safeheron/ssgx"
+      }
+    },
+    {
+      "name": "release-test-config",
+      "description": "configuration for building and running test cases",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/release-test-config",
+      "cacheVariables": {
+        "ENABLE_TEST": "ON",
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_PREFIX_PATH": "/opt/safeheron/ssgx"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release-ssgx-build",
+      "configurePreset": "release-ssgx-config",
+      "jobs": 8
+    },
+    {
+      "name": "release-test-build",
+      "configurePreset": "release-test-config",
+      "jobs": 8
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "release-unit-tests",
+      "configurePreset": "release-test-config"
+    }
+  ]
+}

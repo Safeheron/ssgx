@@ -1,0 +1,54 @@
+/* ssgx_tfilestream.edl - Top EDL file. */
+
+
+enclave {
+    from "sgx_tprotected_fs.edl" import *;
+
+    trusted {
+    };
+
+    untrusted {
+
+        /*
+        *  get file type and permission
+        */
+        int ssgx_ocall_get_file_status([string, in] const char* path, [out]uint32_t* file_type, [out]uint32_t* file_permission);
+
+        /*
+        *  get file type and permission
+        */
+        int ssgx_ocall_get_symlink_file_status([string, in] const char* path, [out]uint32_t* file_type, [out]uint32_t* file_permission);
+
+        /*
+        *  get file size
+        */
+        int ssgx_ocall_get_file_size([string, in] const char* path, [out]long int* file_size);
+
+        /*
+        *  is the directory or regular file empty
+        */
+        int ssgx_ocall_is_directory_or_regular_file_empty([string, in] const char* path, [out]uint32_t* is_empty);
+
+        /*
+        *  create a directory
+        */
+        int ssgx_ocall_create_directory([string, in] const char* path);
+
+        /*
+        *  delete a file
+        */
+        int ssgx_ocall_remove_file([string, in] const char* path);
+
+        /*
+        *  read a normal file
+        */
+        int ssgx_ocall_read_file( [string, in] const char* path, int is_binary, [in, out] uint8_t** data, [out] size_t * size );
+
+        /*
+        *  write data to a normal file
+        */
+        int ssgx_ocall_write_file( [string, in] const char* path, int is_binary, [in, count=size] const uint8_t* data,  size_t size );
+
+    };
+
+};

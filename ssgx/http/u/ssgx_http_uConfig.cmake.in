@@ -1,0 +1,15 @@
+include(CMakeFindDependencyMacro)
+include(${CMAKE_CURRENT_LIST_DIR}/ssgx_http_uTargets.cmake)
+
+get_filename_component(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+
+find_dependency(mbedtls_SGX REQUIRED)
+find_package(Poco REQUIRED COMPONENTS Foundation Net Util)
+
+@PACKAGE_INIT@
+set_and_check(ssgx_http_u_INCLUDE_DIR  "${_INSTALL_PREFIX}/include")
+set_and_check(ssgx_http_u_LIBRARY_DIR "${_INSTALL_PREFIX}/lib")
+set_and_check(ssgx_http_u_LIBRARY "${_INSTALL_PREFIX}/lib/libssgx_http_u.so")
+
+MESSAGE(STATUS "Found ssgx_http_u")

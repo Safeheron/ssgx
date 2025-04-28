@@ -1,0 +1,16 @@
+/* Enclave.edl - Top EDL file. */
+
+enclave {
+    from "sgx_pthread.edl" import *;
+    from "ssgx_utils_t.edl" import *;
+    from "ssgx_config_t.edl" import *;
+    from "ssgx_log_t.edl" import *;
+    from "ssgx_filesystem_t.edl" import *;
+    from "ssgx_http_t.edl" import *;
+
+    trusted {
+        public int ecall_run_server(int alive_time_sec);
+        public int ecall_run_client();
+    };
+
+};

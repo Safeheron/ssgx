@@ -1,0 +1,27 @@
+{
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 19,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "release-config",
+      "description": "configuration for building",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/release-config",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_PREFIX_PATH": "/opt/safeheron/ssgx"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "release-build",
+      "configurePreset": "release-config",
+      "jobs": 2
+    }
+  ]
+}

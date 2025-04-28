@@ -1,0 +1,31 @@
+/* Enclave.edl - Top EDL file. */
+
+
+enclave {
+    from "sgx_tstdc.edl" import *;
+
+    trusted {
+        public void ssgx_ecall_get_enclave_id([out] uint8_t enclave_id[32]);
+
+        public void ssgx_ecall_register_enclave_eid(sgx_enclave_id_t enclave_eid);
+    };
+
+    untrusted {
+        int ssgx_ocall_printf([in, string] const char *str);
+
+        void ssgx_ocall_time( [out] uint64_t* now );
+
+        void ssgx_ocall_time_in_milliseconds( [out] uint64_t* now );
+
+        void ssgx_ocall_time_in_nanoseconds( [out] uint64_t* now );
+
+        void ssgx_ocall_malloc( size_t size, [out] uint8_t **pptr_outside_enclave );
+
+        void ssgx_ocall_calloc( size_t num, size_t size, [out] uint8_t **pptr_outside_enclave );
+
+        void ssgx_ocall_free( [in] uint8_t* ptr_outside_enclave );
+
+        void ssgx_ocall_sleep(uint32_t seconds);
+    };
+
+};

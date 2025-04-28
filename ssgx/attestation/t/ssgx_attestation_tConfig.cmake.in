@@ -1,0 +1,14 @@
+include(CMakeFindDependencyMacro)
+include(${CMAKE_CURRENT_LIST_DIR}/ssgx_attestation_tTargets.cmake)
+
+get_filename_component(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+get_filename_component(_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+
+find_dependency(SafeheronCryptoSuitesSgx REQUIRED)
+
+@PACKAGE_INIT@
+set_and_check(ssgx_attestation_t_INCLUDE_DIR  "${_INSTALL_PREFIX}/include")
+set_and_check(ssgx_attestation_t_LIBRARY_DIR "${_INSTALL_PREFIX}/lib")
+set_and_check(ssgx_attestation_t_LIBRARY "${_INSTALL_PREFIX}/lib/libssgx_attestation_t.a")
+
+MESSAGE(STATUS "Found ssgx_attestation_t.")

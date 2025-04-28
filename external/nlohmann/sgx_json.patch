@@ -1,0 +1,141 @@
+diff --git a/include/nlohmann/detail/input/input_adapters.hpp b/include/nlohmann/detail/input/input_adapters.hpp
+index cf53b1d5..83e6dc76 100644
+--- a/include/nlohmann/detail/input/input_adapters.hpp
++++ b/include/nlohmann/detail/input/input_adapters.hpp
+@@ -18,6 +18,8 @@
+ #include <type_traits> // enable_if, is_base_of, is_pointer, is_integral, remove_pointer
+ #include <utility> // pair, declval
+ 
++#define JSON_NO_IO // for SGX
++
+ #ifndef JSON_NO_IO
+     #include <cstdio>   // FILE *
+     #include <istream>  // istream
+diff --git a/include/nlohmann/detail/input/lexer.hpp b/include/nlohmann/detail/input/lexer.hpp
+index 72e99510..8e903458 100644
+--- a/include/nlohmann/detail/input/lexer.hpp
++++ b/include/nlohmann/detail/input/lexer.hpp
+@@ -9,6 +9,7 @@
+ #pragma once
+ 
+ #include <array> // array
++#include <cerrno> // for SGX
+ #include <clocale> // localeconv
+ #include <cstddef> // size_t
+ #include <cstdio> // snprintf
+@@ -142,9 +143,10 @@ class lexer : public lexer_base<BasicJsonType>
+     JSON_HEDLEY_PURE
+     static char get_decimal_point() noexcept
+     {
+-        const auto* loc = localeconv();
+-        JSON_ASSERT(loc != nullptr);
+-        return (loc->decimal_point == nullptr) ? '.' : *(loc->decimal_point);
++//        const auto* loc = localeconv();
++//        JSON_ASSERT(loc != nullptr);
++//        return (loc->decimal_point == nullptr) ? '.' : *(loc->decimal_point);
++        return '.';
+     }
+ 
+     /////////////////////
+diff --git a/include/nlohmann/detail/json_pointer.hpp b/include/nlohmann/detail/json_pointer.hpp
+index 3f69bcdf..9e4391b6 100644
+--- a/include/nlohmann/detail/json_pointer.hpp
++++ b/include/nlohmann/detail/json_pointer.hpp
+@@ -12,6 +12,9 @@
+ #include <cctype> // isdigit
+ #include <cerrno> // errno, ERANGE
+ #include <cstdlib> // strtoull
++
++#define JSON_NO_IO // for SGX
++
+ #ifndef JSON_NO_IO
+     #include <iosfwd> // ostream
+ #endif  // JSON_NO_IO
+diff --git a/include/nlohmann/detail/macro_scope.hpp b/include/nlohmann/detail/macro_scope.hpp
+index 6248bea1..19823ef0 100644
+--- a/include/nlohmann/detail/macro_scope.hpp
++++ b/include/nlohmann/detail/macro_scope.hpp
+@@ -30,6 +30,8 @@
+     #endif
+ #endif
+ 
++#define JSON_HAS_CPP_11
++
+ // C++ language standard detection
+ // if the user manually specified the used c++ version this is skipped
+ #if !defined(JSON_HAS_CPP_20) && !defined(JSON_HAS_CPP_17) && !defined(JSON_HAS_CPP_14) && !defined(JSON_HAS_CPP_11)
+diff --git a/include/nlohmann/detail/output/output_adapters.hpp b/include/nlohmann/detail/output/output_adapters.hpp
+index 630bd8f7..b41b67fb 100644
+--- a/include/nlohmann/detail/output/output_adapters.hpp
++++ b/include/nlohmann/detail/output/output_adapters.hpp
+@@ -15,6 +15,8 @@
+ #include <string> // basic_string
+ #include <vector> // vector
+ 
++#define JSON_NO_IO // for SGX
++
+ #ifndef JSON_NO_IO
+     #include <ios>      // streamsize
+     #include <ostream>  // basic_ostream
+diff --git a/include/nlohmann/detail/output/serializer.hpp b/include/nlohmann/detail/output/serializer.hpp
+index 500fc55e..1fee1a2a 100644
+--- a/include/nlohmann/detail/output/serializer.hpp
++++ b/include/nlohmann/detail/output/serializer.hpp
+@@ -11,6 +11,7 @@
+ 
+ #include <algorithm> // reverse, remove, fill, find, none_of
+ #include <array> // array
++#include <cerrno> // for SGX
+ #include <clocale> // localeconv, lconv
+ #include <cmath> // labs, isfinite, isnan, signbit
+ #include <cstddef> // size_t, ptrdiff_t
+@@ -67,9 +68,12 @@ class serializer
+     serializer(output_adapter_t<char> s, const char ichar,
+                error_handler_t error_handler_ = error_handler_t::strict)
+         : o(std::move(s))
+-        , loc(std::localeconv())
+-        , thousands_sep(loc->thousands_sep == nullptr ? '\0' : std::char_traits<char>::to_char_type(* (loc->thousands_sep)))
+-        , decimal_point(loc->decimal_point == nullptr ? '\0' : std::char_traits<char>::to_char_type(* (loc->decimal_point)))
++//        , loc(std::localeconv())
++//        , thousands_sep(loc->thousands_sep == nullptr ? '\0' : std::char_traits<char>::to_char_type(* (loc->thousands_sep)))
++//        , decimal_point(loc->decimal_point == nullptr ? '\0' : std::char_traits<char>::to_char_type(* (loc->decimal_point)))
++         , loc(nullptr)
++         , thousands_sep('\0')
++         , decimal_point('\0')
+         , indent_char(ichar)
+         , indent_string(512, indent_char)
+         , error_handler(error_handler_)
+@@ -832,6 +836,9 @@ class serializer
+ 
+         // the actual conversion
+         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg,hicpp-vararg)
++        // Note: In the SGX trusted execution environment, std::snprintf only formats floating-point numbers
++        // according to the standard C environment's floating-point formatting rules.
++        // Refer to: https://github.com/intel/linux-sgx/blob/main/sdk/tlibc/stdio/local.h
+         std::ptrdiff_t len = (std::snprintf)(number_buffer.data(), number_buffer.size(), "%.*g", d, x);
+ 
+         // negative value indicates an error
+@@ -966,7 +973,8 @@ class serializer
+     std::array<char, 64> number_buffer{{}};
+ 
+     /// the locale
+-    const std::lconv* loc = nullptr;
++//    const std::lconv* loc = nullptr;
++    const void* loc = nullptr;
+     /// the locale's thousand separator character
+     const char thousands_sep = '\0';
+     /// the locale's decimal point character
+diff --git a/include/nlohmann/json.hpp b/include/nlohmann/json.hpp
+index 18a7c875..5fa44144 100644
+--- a/include/nlohmann/json.hpp
++++ b/include/nlohmann/json.hpp
+@@ -22,6 +22,9 @@
+ #include <cstddef> // nullptr_t, ptrdiff_t, size_t
+ #include <functional> // hash, less
+ #include <initializer_list> // initializer_list
++
++#define JSON_NO_IO  //for SGX
++
+ #ifndef JSON_NO_IO
+     #include <iosfwd> // istream, ostream
+ #endif  // JSON_NO_IO

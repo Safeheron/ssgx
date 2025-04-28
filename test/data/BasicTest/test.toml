@@ -1,0 +1,47 @@
+string1 = "hello world"
+string2 = """
+Roses are red
+Violets are blue"""
+string3 = """The quick brown fox \
+jumps over the lazy dog."""
+string4 = 'Tom "Dubs" Preston-Werner'
+
+hex1 = 0xDEADBEEF               # hexadecimal
+oct1 = 0o12345670               # octal
+bin1 = 0b11010110               # binary
+dec1 = 36_414_884               # Decimal
+
+extreme_number = 9223372036854775807
+negative_extreme_number = -9223372036854775808
+hex_extreme_number = 0x7FFFFFFFFFFFFFFF
+
+colors = ["red", "blue", "yellow", "green"]
+number = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, +5, +6, +7, +8, +9]
+fruits = [
+    [["apple", "banana", "orange"], ["lemon", "peach"]],
+    [["pear", "grapes", "strawberry"], ["watermelon", "pineapple", "mango"]],
+    "An apple a day keeps the doctor away",
+    { apple = "red", banana = "yellow", peach = "pink" }
+]
+
+
+[animal]
+dog.name = "Tina"
+dog.age = 4
+cat = { name = "Gulu", age = 2 }
+people = [{ name = "Tony", age = 19 }, { name = "Jone", age = 21 }, { name = "Lucy", age = 25 }]
+
+
+[[clothes.price]]
+skirt = 19
+[[clothes.price]]
+dress = 39
+[[clothes.price]]
+shirt = 105
+
+[empty]
+empty_string = ""
+empty_array = []
+
+
+

@@ -1,0 +1,67 @@
+/* Enclave.edl - Top EDL file. */
+
+enclave {
+    from "sgx_tstdc.edl" import *;
+
+    trusted {
+
+    };
+
+    untrusted {
+        /* Create TOML Print string in enclave
+         *
+         * Parameters:
+         *      toml_file_path[in, string] - path of TOML file
+         * Return:
+         *      0 - Success
+         *      <0 -  Failed
+         */
+        int32_t ssgx_ocall_toml_create_from_file([in, string] const char *toml_file_path, [out]uint64_t* ref_toml_file);
+
+        /* Find node and get the int value
+         *
+         * Parameters:
+         *      ref_toml_file[in] - reference to TOML Object
+         *      path[in, string] - path to the node: "[\"Address\", \"IP\"]"
+         *      value[out] - int value
+         * Return:
+         *      0 - Success
+         *      <0 -  Failed
+         */
+        int32_t ssgx_ocall_toml_find_int(uint64_t ref_toml_file, [in, string] const char *path, [out] int64_t* value);
+
+        /* Find node and get the string value
+         *
+         * Parameters:
+         *      ref_toml_file[in] - reference to TOML Object
+         *      path[in, string] - path to the node: "[\"Address\", \"IP\"]"
+         *      value[out, string] - string value
+         * Return:
+         *      0 - Success
+         *      <0 -  Failed
+         */
+        int32_t ssgx_ocall_toml_find_str(uint64_t ref_toml_file, [in, string] const char *path, [out] char** ptr_ptr_value, [out] int32_t* value_len);
+
+        /* Find node and get the array value
+         *
+         * Parameters:
+         *      ref_toml_file[in] - reference to TOML Object
+         *      path[in, string] - path to the node: "[\"Address\", \"IP\"]"
+         *      value[out] - array: [\"red\", \"green\"] or [1, 2, 3]
+         * Return:
+         *      0 - Success
+         *      <0 -  Failed
+         */
+        int32_t ssgx_ocall_toml_find_array(uint64_t ref_toml_file, [in, string] const char *path, [out] char** ptr_ptr_value, [out] int32_t* value_len);
+
+        /* Free TOML Object
+         *
+         * Parameters:
+         *      ref_toml_file[in] - reference to TOML Object
+         * Return:
+         *      0 - Success
+         *      <0 -  Failed
+         */
+        void ssgx_ocall_toml_free(uint64_t ref_toml_file);
+    };
+};

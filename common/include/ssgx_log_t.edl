@@ -1,0 +1,15 @@
+/* ssgx_log_t.edl - Top EDL file. */
+
+enclave {
+    trusted{
+    };
+
+    untrusted {
+        /*
+        *  malloc a chunk of untrusted memory to log
+        */
+        int ssgx_ocall_write_log( int32_t level, [string, in] const char* msg);
+        void ssgx_ocall_set_trace_id( [string, in] const char* trace_id);
+    };
+
+};

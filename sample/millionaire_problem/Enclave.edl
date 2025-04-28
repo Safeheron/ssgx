@@ -1,0 +1,27 @@
+/* Enclave.edl - Top EDL file. */
+
+enclave {
+    from "sgx_pthread.edl" import *;
+    from "ssgx_utils_t.edl" import *;
+    from "ssgx_attestation_t.edl" import *;
+    from "sgx_dcap_tvl.edl" import *;
+
+    trusted {
+        public int ecall_create_tee_pubkey( [string, in] const char *alice_pubkey_hex,
+                                            [string, in] const char *bob_pubkey_hex,
+                                            [out] char **arbiter_pubkey_hex_ptr,
+                                            [out] char **quote_report_ptr,
+                                            [out] uint64_t* out_prep_timestamp,
+                                            [out] char **one_time_access_token);
+        public int ecall_who_is_richer( [string, in] const char *one_time_access_token,
+                                        [string, in] const char *alice_ciphertext,
+                                        [string, in] const char *alice_signature,
+                                        [string, in] const char *bob_ciphertext,
+                                        [string, in] const char *bob_signature,
+                                        [out] char **out_alice_vs_bob_result_ptr,
+                                        [out] char **out_quote_report_ptr,
+                                        [out] uint64_t* out_compare_timestamp);
+
+    };
+
+};

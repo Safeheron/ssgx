@@ -1,0 +1,88 @@
+#ifndef SAFEHERON_SGX_TRUSTED_EXCEPTION_H_
+#define SAFEHERON_SGX_TRUSTED_EXCEPTION_H_
+
+#define EXCEPTION_BUF_SIZE_FILE_PATH 48
+#define EXCEPTION_BUF_SIZE_FUNC 24
+#define EXCEPTION_BUF_SIZE_MESSAGE 128
+
+#include <cstring>
+#include <stdexcept>
+#include <string>
+
+namespace ssgx {
+/**
+ * @namespace ssgx::exception_t
+ * @brief This module is an exception class designed to facilitate the throwing of error messages.
+ */
+namespace exception_t {
+
+/**
+ * @brief %LocatedException class thrown with extra information such as file_path, func, line_num, internal_code and
+ * descriptions.
+ *
+ * \code{.cpp}
+ *    try {
+ *          if ((ret = BN_set_bit(bn_, index)) != 1) {
+ *            throw LocatedException(__FILE__, __LINE__, __FUNCTION__, ret,
+ * "(ret = BN_set_bit(bn_, index)) != 1");
+ *          }
+ *    } catch (const LocatedException &e) {
+ *          std::cout << e.what() << std::endl;
+ *    }
+ * \endcode
+ *
+ * The output is:
+ *      Catch LocatedException:
+ * tring_crypto/crypto-bn-cpp/src/crypto-bn/bn.cpp:1124:FromBytesBE:0:(ret = BN_set_bit(bn_, index)) != 1
+ */
+class LocatedException : public std::exception {
+  public:
+    explicit LocatedException(const char* file_path, int line_num, const char* func, int internal_code,
+                              const char* message) {
+        info_.reserve(EXCEPTION_BUF_SIZE_FILE_PATH + EXCEPTION_BUF_SIZE_FUNC + EXCEPTION_BUF_SIZE_MESSAGE + 30);
+
+        int src_offset = 0;
+        size_t src_len = strlen(file_path);
+        if (src_len >= EXCEPTION_BUF_SIZE_FILE_PATH) {
+            src_offset = src_len - EXCEPTION_BUF_SIZE_FILE_PATH + 1;
+            src_len = EXCEPTION_BUF_SIZE_FILE_PATH - 1;
+        }
+        info_.append(file_path + src_offset, src_len);
+        info_.append(":");
+
+        info_.append(std::to_string(line_num));
+        info_.append(":");
+
+        src_offset = 0;
+        src_len = strlen(func);
+        if (src_len >= EXCEPTION_BUF_SIZE_FUNC) {
+            src_offset = src_len - EXCEPTION_BUF_SIZE_FUNC + 1;
+            src_len = EXCEPTION_BUF_SIZE_FUNC - 1;
+        }
+        info_.append(func + src_offset, src_len);
+        info_.append(":");
+
+        info_.append(std::to_string(internal_code));
+        info_.append(":");
+
+        src_offset = 0;
+        src_len = strlen(message);
+        if (src_len >= EXCEPTION_BUF_SIZE_MESSAGE) {
+            src_offset = src_len - EXCEPTION_BUF_SIZE_MESSAGE + 1;
+            src_len = EXCEPTION_BUF_SIZE_MESSAGE - 1;
+        }
+        info_.append(message + src_offset, src_len);
+    }
+
+    virtual const char* what() const noexcept {
+        return info_.c_str();
+    }
+
+  public:
+    std::string info_;
+};
+
+}; // namespace exception_t
+}; // namespace ssgx
+
+#endif // SAFEHERON_SGX_TRUSTED_EXCEPTION_H_

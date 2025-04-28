@@ -1,0 +1,18 @@
+enclave {
+    from "sgx_tstdc.edl" import *;
+    from "sgx_dcap_tvl.edl" import *;
+
+    untrusted {
+        int ssgx_ocall_get_qe_target_info([out, count=1]sgx_target_info_t* p_qe3_target);
+
+        int ssgx_ocall_create_quote_data([in] const sgx_report_t *report, [out] uint8_t** p_quote, [out] uint32_t *quote_size);
+
+        int ssgx_ocall_verify_quote_data([in, count=quote_report_size] const uint8_t* quote_report, uint64_t quote_report_size,
+                                     [in, out, count=1] sgx_ql_qe_report_info_t *p_qve_report_info,
+                                     [out] time_t* expiration_check_date,
+                                     [out] uint32_t* collateral_expiration_status,
+                                     [out] sgx_ql_qv_result_t* quote_verification_result,
+                                     [in, out] uint8_t** p_supplemental_data,
+                                     [out] uint32_t* supplemental_data_size);
+    };
+};

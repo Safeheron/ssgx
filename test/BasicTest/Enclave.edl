@@ -1,0 +1,26 @@
+/* Enclave.edl - Top EDL file. */
+
+enclave {
+    from "sgx_pthread.edl" import *;
+    from "ssgx_utils_t.edl" import *;
+    from "ssgx_config_t.edl" import *;
+    from "ssgx_log_t.edl" import *;
+    from "ssgx_http_t.edl" import *;
+    from "ssgx_filesystem_t.edl" import *;
+    from "ssgx_attestation_t.edl" import *;
+    from "sgx_dcap_tvl.edl" import *;
+
+    trusted {
+        public int ecall_run_test();
+    };
+
+    untrusted {
+        int ocall_symlink_file([in, string]const char* path, [in, string]const char* link_path);
+
+        int ocall_verify_quote_untrusted([in, count = quote_size]const uint8_t* quote, int quote_size,
+                                        uint64_t time_stamp, uint64_t validity_seconds, [in, string]const char* user_info);
+
+        int ocall_verify_quote_untrusted_original([in, count = quote_size]const uint8_t* quote, int quote_size,
+                                                [in, count=64]const uint8_t* user_info);
+    };
+};

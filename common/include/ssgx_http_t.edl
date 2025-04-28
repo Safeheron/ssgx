@@ -1,0 +1,28 @@
+/* ssgx_thttp_server.edl - Top EDL file. */
+
+enclave {
+    from "sgx_tstdc.edl" import *;
+    from "mbedtls_SGX.edl" import *; // for http client
+    trusted{
+        public int ssgx_ecall_http_on_message([string, in]const char * server_id,
+                                              [string, in]const char * req_method,
+                                              [string, in]const char * req_path,
+                                              [string, in]const char * req_params_json,
+                                              [string, in]const char * req_headers_json,
+                                              [in, size=req_body_size]const uint8_t * req_body,
+                                              size_t req_body_size,
+                                              [out]char ** resp_status_headers_json,
+                                              [out]uint8_t ** resp_body,
+                                              [out]size_t* resp_body_size);
+    };
+
+    untrusted {
+        int ssgx_ocall_http_create_listener(uint64_t sgx_enclave_id_t,
+                                            [string,in] const char *url,
+                                            uint64_t timeout_seconds,
+                                            uint64_t max_threads,
+                                            uint64_t max_queued);
+        void ssgx_ocall_http_release_listener([string,in] const char *server_id);
+    };
+
+};
