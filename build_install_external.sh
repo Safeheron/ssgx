@@ -31,7 +31,7 @@ execute_script "$script_proto"
 # List of external dependencies with their respective install scripts
 declare -A EXTERNAL_DEPENDENCIES=(
     ["log4cplus"]="install.sh"
-    ["mbedtls"]="build_and_install.sh"
+    ["mbedtls"]="build_and_install_mbedtls_SGX.sh"
     ["mpdecimal"]="build_and_install.sh"
     ["nlohmann"]="apply_patch_and_install.sh"
     ["safeheron-crypto-suites-cpp"]="build_and_install.sh" # Optional, adjust if a script exists

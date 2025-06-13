@@ -37,14 +37,14 @@ following requirements:
 
 This project relies on the following third-party libraries:
 
-- `log4cplus` - Logging library
-- `mbedtls` - Lightweight cryptographic library
-- `mpdecimal` - High-precision computation library
-- `nlohmann` - JSON parsing library
-- `toml11` - TOML configuration parsing library
-- `poco` - Portable Components C++ Libraries
-- `protobuf` - Google's data interchange format
-- `safeheron-crypto-suites-cpp` - Safeheron cryptographic algorithm library
+- [`log4cplus`](https://github.com/log4cplus/log4cplus) - Logging library
+- [`mbedtls-SGX`](https://github.com/Safeheron/mbedtls-SGX) - Lightweight cryptographic library
+- [`mpdecimal`](./external/mpdecimal) - High-precision computation library
+- [`nlohmann`](./external/nlohmann) - JSON parsing library
+- [`toml11`](https://github.com/ToruNiina/toml11) - TOML configuration parsing library
+- [`poco`](./external/poco) - Portable Components C++ Libraries
+- [`protobuf`](./external/protobuf/) - Google's data interchange format
+- [`safeheron-crypto-suites-cpp`](https://github.com/Safeheron/safeheron-crypto-suites-cpp) - Safeheron cryptographic algorithm library
 
 ## **Dependency Installation**
 
