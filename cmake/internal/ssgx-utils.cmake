@@ -117,7 +117,7 @@ endfunction()
 #   KEY_FILE_PATH (Required): The full path to the private key file to check or create.
 #   KEY_SIZE (Optional): The number of bits to use when generating the key (Default: 3072).
 #   OPENSSL_EXE (Optional): The path to the openssl executable. If not provided, it will be searched for automatically.
-#
+# ============================================================================================
 function(ssgx_ensure_rsa_key_exists)
     # Define the arguments accepted by the function
     set(options "") # No boolean options
