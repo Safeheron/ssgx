@@ -27,6 +27,11 @@ function(ssgx_collect_dependencies target output_list)
         return()
     endif()
 
+    if(${target} MATCHES "^-l")
+        list(APPEND collected_deps ${dep})
+        return()
+    endif()
+
     get_target_property(deps ${target} INTERFACE_LINK_LIBRARIES)
     if (deps)
         foreach(dep ${deps})
