@@ -35,3 +35,4 @@ install(DIRECTORY ../common/include/
 
 install(FILES ../cmake/ssgx-build.cmake DESTINATION lib/cmake/ssgx)
 install(DIRECTORY ../cmake/internal DESTINATION lib/cmake/ssgx)
+install(DIRECTORY ../cmake/entrypoints DESTINATION lib/cmake/ssgx)

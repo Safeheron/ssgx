@@ -27,6 +27,10 @@
 #
 # - SSGX_ENV__HARDWARE_MODE          : ON / OFF
 #     -> Set via `ssgx_set_hardware_mode(...)`
+#
+# [4] entry path
+# -----------------------------------------------------
+# - SSGX_ENV__CMAKE_ENTRY_PATH
 # ============================================================================================
 
 include_guard(GLOBAL)
@@ -127,6 +131,9 @@ ssgx_check_path("${SSGX_ENV__SGXSSL_LIBRARY_DIR}/libsgx_tsgxssl.a" "Intel SGX SS
 # Section 6: Define global EDL search paths (used by sgx_edger8r)
 # ============================================================================================
 set(SSGX_ENV__EDL_SEARCH_PATHS ${SSGX_ENV__SGXSDK}/include /opt/safeheron/ssgx/include/mbedtls CACHE PATH "Search Paths for SSGX EDL files" FORCE)
+
+
+set(SSGX_ENV__CMAKE_ENTRY_PATH ${CMAKE_CURRENT_LIST_DIR}/../entrypoints CACHE PATH "CMAKE_ENTRY_PATH of SSGX" FORCE)
 
 # ============================================================================================
 # Section 7: Enum Setup: BuildMode {Debug, PreRelease, Release}
