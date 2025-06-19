@@ -33,7 +33,7 @@ int SGX_CDECL main(int argc, char* argv[]) {
     printf("Enclave is created!\n\n");
 
     // Initialize SSGXLogger
-    ssgx::log_u::SSGXLogger::GetInstance().Init("/opt/logs/tee-log/log-safeheron-mpc-engine", "PROJECT_NAME",
+    ssgx::log_u::SSGXLogger::GetInstance().Init("PROJECT_NAME","/tmp/tee-log",
                                                 ssgx::log_u::LogLevel::INFO, true);
 
     printf("Try to run ecall_run_test() ...\n\n");
