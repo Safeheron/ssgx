@@ -25,7 +25,7 @@ LogHelper::~LogHelper() {
 }
 
 // Initialize the logging system
-void LogHelper::SetLogger(const std::string& log_file, const std::string& logger_name, log4cplus::LogLevel log_level,
+void LogHelper::SetLogger(const std::string& logger_name, const std::string& log_file, log4cplus::LogLevel log_level,
                           bool append_console) {
     auto logger = log4cplus::Logger::getInstance(LOG4CPLUS_TEXT(logger_name));
     logger.removeAllAppenders();

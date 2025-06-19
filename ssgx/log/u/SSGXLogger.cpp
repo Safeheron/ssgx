@@ -28,7 +28,7 @@ SSGXLogger& SSGXLogger::GetInstance() {
 
 void SSGXLogger::Init(const std::string& logger_name, const std::string& log_file, LogLevel log_level,
                       bool append_console) {
-    ssgx::log_u::LogHelper::GetInstance().SetLogger(log_file, logger_name, MapLogLevel(log_level), append_console);
+    ssgx::log_u::LogHelper::GetInstance().SetLogger(logger_name, log_file, MapLogLevel(log_level), append_console);
     ssgx::log_u::LogHelper::GetInstance().SetTraceId("main");
     logger_name_ = logger_name;
     initialized_ = true;
