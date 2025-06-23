@@ -31,6 +31,8 @@ include("${CMAKE_CURRENT_LIST_DIR}/internal/ssgx-untrusted.cmake")
 # User-configurable:
 #   - SSGX_ENV__BUILD_MODE: (Debug | PreRelease | Release)
 #   - SSGX_ENV__HARDWARE_MODE: (ON | OFF)
+# Entry path:
+#   - SSGX_ENV__CMAKE_ENTRY_PATH
 
 # ============================================================================================
 # Functions for configuration and environment retrieval

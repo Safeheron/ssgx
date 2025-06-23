@@ -252,7 +252,7 @@ function(ssgx_get_untrusted_env
     endif()
 
     set(t_APP_INC_DIRS ${SSGX_ENV__SGXSDK_INCLUDE_DIR})
-    set(t_APP_C_FLAGS ${SSGX_ENV__SGX_COMMON_CFLAGS} -fPIC -Wno-attributes)
+    set(t_APP_C_FLAGS ${t_SGX_COMMON_CFLAGS} -fPIC -Wno-attributes)
     set(t_APP_CXX_FLAGS ${t_APP_C_FLAGS})
 
     set(${OUT_SGX_URTS_LIB} ${t_SGX_URTS_LIB} PARENT_SCOPE)

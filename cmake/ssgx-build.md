@@ -115,14 +115,15 @@ ssgx_sign_enclave(my_enclave
 
 You can read the following:
 
-| Variable Name                   | Description                                 |
-|--------------------------------|---------------------------------------------|
-| `SSGX_ENV__SGXSDK`             | Intel SGX SDK install path                  |
-| `SSGX_ENV__SGXSSL`             | Intel SGX SSL install path                  |
+| Variable Name                   | Description                                |
+|--------------------------------|--------------------------------------------|
+| `SSGX_ENV__SGXSDK`             | Intel SGX SDK install path                 |
+| `SSGX_ENV__SGXSSL`             | Intel SGX SSL install path                 |
 | `SSGX_ENV__BUILD_MODE`         | One of: `Debug`, `PreRelease`, `Release`   |
 | `SSGX_ENV__HARDWARE_MODE`      | Either `"ON"` or `"OFF"`                   |
 | `SSGX_ENV__SGX_COMMON_CFLAGS`  | Global C/C++ compile flags for SGX modules |
 | `SSGX_ENV__EDL_SEARCH_PATHS`   | Additional paths for EDL lookup            |
+| `SSGX_ENV__CMAKE_ENTRY_PATH`   | Entry path of cmake                        |
 
 > Tips: These variables are globally accessible and may be inspected for debugging or advanced customization. However, direct modification is discouraged. Instead, prefer using the provided `ssgx_set_*` functions to ensure compatibility and avoid unexpected behavior.
 ---
