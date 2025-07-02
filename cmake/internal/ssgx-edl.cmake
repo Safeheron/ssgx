@@ -53,10 +53,12 @@ function(ssgx_generate_trusted_edl_header edl edl_search_paths use_prefix)
         message(FATAL_ERROR "File '${edl}' not found in SEARCH_PATHS: ${SEARCH_PATHS}")
     endif()
 
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_t.h" GENERATED_HEAD_FILE_PATH)
+
     add_custom_command(
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_t.h
             COMMENT "Generating ${EDL_NAME}_t.h in directory ${CMAKE_CURRENT_BINARY_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E echo "    -- Generating ${EDL_NAME}_t.h in directory ${CMAKE_CURRENT_BINARY_DIR}"  # For Ninja
+            COMMAND ${SSGX_ENV__SHELL_EXECUTABLE} ${SSGX_ENV__SCRIPT_COLOR_ECHO} "Generating ${GENERATED_HEAD_FILE_PATH}" "GREEN"
             COMMAND ${SSGX_ENV__SGX_EDGER8R} ${USE_PREFIX} --header-only --trusted ${edl} --search-path ${SEARCH_PATHS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             DEPENDS ${EDL_FULL_PATH}
@@ -111,14 +113,15 @@ function(ssgx_generate_untrusted_edl_header edl edl_search_paths use_prefix)
         message(FATAL_ERROR "File '${edl}' not found in SEARCH_PATHS: ${SEARCH_PATHS}")
     endif()
 
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.h" GENERATED_HEAD_FILE_PATH)
+
     add_custom_command(
             OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.h
             COMMENT "Generating ${EDL_NAME}_u.h in directory ${CMAKE_CURRENT_BINARY_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E echo "    -- Generating ${EDL_NAME}_u.h in directory ${CMAKE_CURRENT_BINARY_DIR}"  # For Ninja
+            COMMAND ${SSGX_ENV__SHELL_EXECUTABLE} ${SSGX_ENV__SCRIPT_COLOR_ECHO} "Generating ${GENERATED_HEAD_FILE_PATH}" "GREEN"
             COMMAND ${SSGX_ENV__SGX_EDGER8R} ${USE_PREFIX} --header-only --untrusted ${edl} --search-path ${SEARCH_PATHS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             DEPENDS ${EDL_FULL_PATH}
-            COMMENT "Generating ${EDL_NAME}_u.h"
     )
 
     add_custom_target(${target}-${edl}-untrusted-headers
@@ -174,10 +177,14 @@ function(ssgx_generate_trusted_edl_source edl edl_search_paths use_prefix)
     set(EDL_C "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_t.c")
     set(EDL_H "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_t.h")
 
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_t.h" GENERATED_HEAD_FILE_PATH)
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_t.c" GENERATED_SOURCE_FILE_PATH)
+
     add_custom_command(
             OUTPUT ${EDL_C} ${EDL_H}
             COMMENT "Generating ${EDL_NAME}_t.h, ${EDL_NAME}_t.c in directory ${CMAKE_CURRENT_BINARY_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E echo "    -- Generating ${EDL_NAME}_t.h, ${EDL_NAME}_t.c in directory ${CMAKE_CURRENT_BINARY_DIR}"  # For Ninja
+            COMMAND ${SSGX_ENV__SHELL_EXECUTABLE} ${SSGX_ENV__SCRIPT_COLOR_ECHO} "Generating ${GENERATED_HEAD_FILE_PATH}" "GREEN"
+            COMMAND ${SSGX_ENV__SHELL_EXECUTABLE} ${SSGX_ENV__SCRIPT_COLOR_ECHO} "Generating ${GENERATED_SOURCE_FILE_PATH}" "GREEN"
             COMMAND ${SSGX_ENV__SGX_EDGER8R} ${USE_PREFIX} --trusted ${edl} --search-path ${SEARCH_PATHS}
             MAIN_DEPENDENCY ${EDL_FULL_PATH} # Track changes to the EDL file
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -234,10 +241,14 @@ function(ssgx_generate_untrusted_edl_source edl edl_search_paths use_prefix)
     set(EDL_C "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.c")
     set(EDL_H "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.h")
 
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.h" GENERATED_HEAD_FILE_PATH)
+    file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.c" GENERATED_SOURCE_FILE_PATH)
+
     add_custom_command(
             OUTPUT ${EDL_C} ${EDL_H}
             COMMENT "Generating ${EDL_NAME}_u.h, ${EDL_NAME}_u.c in directory ${CMAKE_CURRENT_BINARY_DIR}"
-            COMMAND ${CMAKE_COMMAND} -E echo "    -- Generating ${EDL_NAME}_u.h, ${EDL_NAME}_u.c in directory ${CMAKE_CURRENT_BINARY_DIR}"  # For Ninja
+            COMMAND ${SSGX_ENV__SHELL_EXECUTABLE} ${SSGX_ENV__SCRIPT_COLOR_ECHO} "Generating ${GENERATED_HEAD_FILE_PATH}" "GREEN"
+            COMMAND ${SSGX_ENV__SHELL_EXECUTABLE} ${SSGX_ENV__SCRIPT_COLOR_ECHO} "Generating ${GENERATED_SOURCE_FILE_PATH}" "GREEN"
             COMMAND ${SSGX_ENV__SGX_EDGER8R} ${USE_PREFIX} --untrusted ${edl} --search-path ${SEARCH_PATHS}
             MAIN_DEPENDENCY ${EDL_FULL_PATH} # Track changes to the EDL file
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}

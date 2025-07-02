@@ -67,7 +67,11 @@ function(ssgx_sign_enclave target)
 
     add_custom_target(${target}-signed ALL
             COMMAND ${SSGX_ENV__SGX_ENCLAVE_SIGNER} dump -enclave ${OUTPUT_NAME} -dumpfile ${target}-signed-metadata.txt
-            COMMAND ${CMAKE_COMMAND} -DFILE=${target}-signed-metadata.txt -DOUT_MRENCLAVE_VAR=__unused -P ${SSGX_ENV__CMAKE_ENTRY_PATH}/extract_mrenclave_entry.cmake
+            COMMAND ${CMAKE_COMMAND} -DFILE=${target}-signed-metadata.txt
+                                     -DSHELL_EXECUTABLE=${SSGX_ENV__SHELL_EXECUTABLE}
+                                     -DSCRIPT_COLOR_ECHO=${SSGX_ENV__SCRIPT_COLOR_ECHO}
+                                     -DOUT_MRENCLAVE_VAR=__unused
+                                     -P ${SSGX_ENV__CMAKE_ENTRY_PATH}/extract_mrenclave_entry.cmake
             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_NAME}
     )

@@ -36,3 +36,15 @@ install(DIRECTORY ../common/include/
 install(FILES ../cmake/ssgx-build.cmake DESTINATION lib/cmake/ssgx)
 install(DIRECTORY ../cmake/internal DESTINATION lib/cmake/ssgx)
 install(DIRECTORY ../cmake/entrypoints DESTINATION lib/cmake/ssgx)
+
+if(UNIX OR APPLE)
+    install(DIRECTORY ../cmake/scripts
+            DESTINATION lib/cmake/ssgx
+            FILES_MATCHING PATTERN "*.sh")
+else()
+    install(DIRECTORY ../cmake/scripts
+            DESTINATION lib/cmake/ssgx
+            FILES_MATCHING PATTERN "*.bat")
+endif()
+
+
