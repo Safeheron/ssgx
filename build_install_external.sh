@@ -1,34 +1,101 @@
 #!/bin/bash
+#
+# Main build orchestrator for external dependencies.
+# This version exclusively uses command-line arguments for inter-script communication.
+#
 
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-# Set the base directory for the external scripts
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/external"
+# --- 1. Parameter Parsing for the Main Script ---
+# Internal variables remain lowercase.
+trusted_install_prefix_val="/opt/safeheron/ssgx"
+install_libs_together_val="false"
 
-# Log the installation process
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --trusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                trusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --trusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        --untrusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                untrusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --untrusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+# --- 2. Setup Variables and Functions ---
+base_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/external"
+
 log() {
+    echo -e "\n[INFO] ========================================================="
     echo "[INFO] $1"
+    echo -e "[INFO] ========================================================="
 }
 
-# Check and execute scripts in a given directory
+# MODIFIED execute_script function
+# It now accepts a path and a list of arguments to pass along.
+# $1: Path to the script to execute.
+# $@: All subsequent arguments are passed directly to the sub-script.
 execute_script() {
     local script_path=$1
-    if [ -f "$script_path" ]; then
-        log "Executing $script_path..."
-        chmod +x "$script_path"
-        "$script_path"
-        log "Completed: $script_path"
-    else
-        log "Script $script_path not found. Skipping."
+    shift # Remove script_path, the rest are the arguments for the sub-script.
+    local sub_script_args=("$@")
+
+    if [ ! -f "$script_path" ]; then
+        echo "[WARNING] Script '$script_path' not found. Skipping."
+        return
     fi
+
+    chmod +x "$script_path"
+
+    # Pass the arguments to the sub-script. The quotes are crucial for handling spaces.
+    echo "[CMD] \"$script_path\" \"${sub_script_args[@]}\""
+    "$script_path" "${sub_script_args[@]}"
 }
 
+# --- 3. Prepare Command-Line Arguments for Sub-scripts ---
+# We use an array to safely build the list of arguments.
+sub_script_args=()
+
+echo "--- Configuration Summary ---"
+if [ -n "$trusted_install_prefix_val" ]; then
+    echo "trusted Install Prefix: $trusted_install_prefix_val"
+    # Add the argument and its value to the array.
+    sub_script_args+=(--trusted-install-prefix "$trusted_install_prefix_val")
+
+    if [[ "$install_libs_together_val" == "true" ]]; then
+        local untrusted_path="${trusted_install_prefix_val}/__untrusted_dependencies"
+        echo "Install Untrusted Libs Together: YES"
+        echo "Path for Untrusted Libs: $untrusted_path"
+        # Add the second argument and its value to the array.
+        sub_script_args+=(--untrusted-install-prefix "$untrusted_path")
+    else
+        echo "Install Untrusted Libs Together: NO"
+    fi
+else
+    echo "No custom prefix provided. All libraries will be installed to their default system paths."
+fi
+echo "---------------------------"
+
+# --- 4. Define Dependencies and Execute Installation ---
 script_proto="${BASE_DIR}/protobuf/build_and_install.sh"
 log "Processing dependency: protobuf"
-execute_script "$script_proto"
+execute_script "$script_proto" "${sub_script_args[@]}"
 
-# List of external dependencies with their respective install scripts
 declare -A EXTERNAL_DEPENDENCIES=(
     ["log4cplus"]="install.sh"
     ["mbedtls"]="build_and_install_mbedtls_SGX.sh"
@@ -39,11 +106,14 @@ declare -A EXTERNAL_DEPENDENCIES=(
     ["poco"]="install.sh"
 )
 
-# Iterate through each dependency and call its script
-for dependency in "${!EXTERNAL_DEPENDENCIES[@]}"; do
-    script="${BASE_DIR}/${dependency}/${EXTERNAL_DEPENDENCIES[$dependency]}"
+# Iterate and call each script, passing the constructed argument list.
+for dependency in "${!external_dependencies[@]}"; do
+    local script_name="${external_dependencies[$dependency]}"
+    local script_path="${base_dir}/${dependency}/${script_name}"
+
     log "Processing dependency: $dependency"
-    execute_script "$script"
+    # The expansion "${sub_script_args[@]}" correctly passes all elements of the array as separate arguments.
+    execute_script "$script_path" "${sub_script_args[@]}"
 done
 
 log "All dependencies have been processed successfully."

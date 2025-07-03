@@ -3,6 +3,37 @@
 # Exit immediately if a command fails
 set -e
 
+# Parameter Parsing for this Sub-script ---
+# Initialize local variables to store parsed values.
+trusted_install_prefix=""
+untrusted_install_prefix=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --trusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                trusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --trusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        --untrusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                untrusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --untrusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 # Define global variables
 TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 REPO_URL="https://github.com/Safeheron/safeheron-crypto-suites-cpp.git"
@@ -11,8 +42,17 @@ SGX_VERSION_TAG="291613e138cbb9cb8e7b646ee4767d123a5198b9"   # SGX-specific vers
 UNTRUSTED_VERSION_TAG="d193dd7ba29e02a8f4705b9698bbb49f0939016a" # Untrusted version (main branch)
 
 # Install locations
-SGX_INSTALL_PREFIX="/opt/safeheron/ssgx"
-UNTRUSTED_INSTALL_PREFIX="/usr/local"
+SGX_INSTALL_PREFIX="/opt/safeheron/ssgx"   # default
+UNTRUSTED_INSTALL_PREFIX="/usr/local"      # default
+
+if [ -n "$trusted_install_prefix" ]; then
+    SGX_INSTALL_PREFIX="$trusted_install_prefix"
+    echo "Overriding SGX Install Prefix with: $SGX_INSTALL_PREFIX"
+fi
+if [ -n "$untrusted_install_prefix" ]; then
+    UNTRUSTED_INSTALL_PREFIX="$untrusted_install_prefix"
+    echo "Overriding Untrusted Install Prefix with: $UNTRUSTED_INSTALL_PREFIX"
+fi
 
 # Build directories
 SGX_BUILD_DIR="${REPO_DIR}/sgx_build"

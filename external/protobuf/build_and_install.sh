@@ -3,6 +3,27 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+# Parameter Parsing for this Sub-script ---
+# Initialize local variables to store parsed values.
+untrusted_install_prefix=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --untrusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                untrusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --untrusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 # Define variables
 TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 REPO_URL="https://github.com/protocolbuffers/protobuf.git"
@@ -33,7 +54,17 @@ git submodule update --init --recursive || { echo "Failed to update submodules";
 
 echo "Run autogen.sh and configure..."
 ./autogen.sh || { echo "Failed to autogen"; exit 1; }
-./configure || { echo "Failed to configure"; exit 1; }
+
+# Prepare configure arguments. Protobuf is an untrusted library.
+CONFIGURE_ARGS=""
+if [ -n "$untrusted_install_prefix" ]; then
+    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
+    # For autotools, the argument is --prefix
+    CONFIGURE_ARGS="--prefix=$untrusted_install_prefix"
+else
+    echo ">>> No custom installation prefix provided. Will install to system default location (usually /usr/local)."
+fi
+./configure ${CONFIGURE_ARGS} || { echo "Failed to configure"; exit 1; }
 
 # Build
 echo "Building protobuf..."

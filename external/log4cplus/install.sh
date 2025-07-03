@@ -3,6 +3,29 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
+# Parameter Parsing for this Sub-script ---
+# Initialize local variables to store parsed values.
+untrusted_install_prefix=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --untrusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                untrusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --untrusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+
+
 # Define variables
 TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 REPO_URL="https://github.com/log4cplus/log4cplus.git"
@@ -41,9 +64,18 @@ fi
 # Navigate to the build directory
 cd "$BUILD_DIR" || exit 1
 
+# Configure, Build, and Install (CORRECTED SECTION) ---
+CMAKE_ARGS=""
+
+# Use the 'untrusted_install_prefix' variable parsed from command-line arguments.
+if [ -n "$untrusted_install_prefix" ]; then
+    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
+    CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=$untrusted_install_prefix"
+fi
+
 # Configure the project with CMake
 echo "Configuring log4cplus with CMake..."
-cmake .. || { echo "CMake configuration failed"; exit 1; }
+cmake .. ${CMAKE_ARGS} || { echo "CMake configuration failed"; exit 1; }
 
 # Build and install
 echo "Building and installing log4cplus..."

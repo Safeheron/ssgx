@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# Parameter Parsing for this Sub-script ---
+# Initialize local variables to store parsed values.
+untrusted_install_prefix=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --untrusted-install-prefix)
+            if [[ -n "$2" && "$2" != --* ]]; then
+                untrusted_install_prefix="$2"
+                shift 2
+            else
+                echo "Error: --untrusted-install-prefix requires a non-empty value." >&2
+                exit 1
+            fi
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
 # Define variables
 top_dir="$(cd "$(dirname "$(realpath "${0}")")" && pwd)"
 toml11_url="https://github.com/ToruNiina/toml11/archive/refs/tags/v3.8.1.zip"
@@ -46,8 +67,18 @@ fi
 
 # Navigate to the build directory, configure, and build
 cd $build_dir || exit 1
+
+# Configure, Build, and Install (CORRECTED SECTION) ---
+CMAKE_ARGS="-DCMAKE_CXX_STANDARD=11"
+
+# Use the 'untrusted_install_prefix' variable parsed from command-line arguments.
+if [ -n "$untrusted_install_prefix" ]; then
+    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
+    CMAKE_ARGS="$CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=$untrusted_install_prefix"
+fi
+
 echo "Configuring and building toml11..."
-cmake .. -DCMAKE_CXX_STANDARD=11 || { echo "CMake configuration failed"; exit 1; }
+cmake .. ${CMAKE_ARGS} || { echo "CMake configuration failed"; exit 1; }
 sudo make install || { echo "Build and installation failed"; exit 1; }
 
 echo "toml11 installation completed successfully."
