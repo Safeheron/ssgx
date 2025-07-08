@@ -101,8 +101,8 @@ int ecall_run_http_server() {
     srv.AddFilter(std::make_unique<TimingFilter>());
     srv.AddFilter(std::make_unique<LoggingFilter>());
     srv.Start();
-    while (1) {
-        ssgx::utils_t::Sleep(10);
+    while (!srv.ShouldStop()) {
+        ssgx::utils_t::Sleep(5);
     }
 
     return 0;

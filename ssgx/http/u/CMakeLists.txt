@@ -7,6 +7,8 @@ find_package(Poco REQUIRED COMPONENTS Foundation Net Util)
 file(GLOB http_u_server_SOURCE
         server/RequestHandler.cpp
         server/ocall_http_server.cpp
+        server/http_u_server_imp.cpp
+        server/SSGXHttpServer.cpp
 )
 
 ssgx_add_untrusted_library(${LIB_NAME} SHARED

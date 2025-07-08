@@ -115,6 +115,24 @@ class Server {
     void Stop();
 
     /**
+     * @brief Check whether the server should stop.
+     *
+     * This method returns true if the server has received a stop request or has been instructed to terminate.
+     * It can be used inside a run loop or polling mechanism to determine whether the server should gracefully exit.
+     *
+     * @return true if the server is in a stopped or stopping state, false otherwise.
+     *
+     * @note Example usage:
+     * @code
+     * srv.Start();
+     * while (!srv.ShouldStop()) {
+     *     ssgx::utils_t::Sleep(5);
+     * }
+     * @endcode
+     */
+    bool ShouldStop() const;
+
+    /**
      * @brief Register a handler for GET requests.
      *
      * This method registers a handler function that will be invoked whenever a GET request is made to the specified

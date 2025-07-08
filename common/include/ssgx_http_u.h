@@ -6,6 +6,7 @@
 #include <sgx_error.h>
 #include <sgx_urts.h>
 #include <unordered_map>
+#include <atomic>
 
 namespace ssgx {
 
@@ -92,6 +93,24 @@ class HttpCallbackManager {
     mutable std::mutex mutex_;
     std::unordered_map<sgx_enclave_id_t, HttpOnMessageCallback> http_callback_map_;
 };
+
+class SignalFlag {
+public:
+    static void SetStopFlag() {
+        stop_flag_.store(true, std::memory_order_relaxed);
+    }
+
+    static bool GetStopFlag() {
+        return stop_flag_.load(std::memory_order_relaxed);
+    }
+
+private:
+    SignalFlag() = delete;
+
+    static std::atomic<bool> stop_flag_;
+};
+
+void StopHttpServers();
 
 } // namespace http_u
 } // namespace ssgx
