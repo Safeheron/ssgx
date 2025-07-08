@@ -58,6 +58,11 @@ void PostHandler(Request& request, Response& response) {
 
     response.SetResp(reply, "application/json", ssgx::http_t::HttpStatusCode::OK200);
 }
+
+void HandlerThrowException(Request& request, Response& response) {
+    throw std::runtime_error("Exception in HandlerThrowException");
+}
+
 class TimingFilter : public ssgx::http_t::Filter {
   public:
     struct Context{
@@ -151,12 +156,30 @@ TEST(HttpServerTestSuite, Post_Request) {
     ssgx::utils_t::Printf("Request2 Successful\n");
 }
 
+TEST(HttpServerTestSuite, Post_Request_Throw_Exception) {
+    std::string path = "/handlerthrow?p1=a&p2=b";
+    Client client = Client("http://0.0.0.0:83");
+    TypeHeaders headers = {{"test_key1", "test_val1"}, {"test_key2", "test_val2"}};
+    std::string body = "{\"body_params1\":\"test1\",\"body_params_array\":{\"k1\":\"1\",\"k2\":\"2\"}}";
+
+    ssgx::utils_t::Printf("\n\n");
+
+    ssgx::http_t::Result result = client.Post(path, headers, body, "application/json", 5);
+    if (!result) { // Failed!
+        ssgx::utils_t::Printf("Error code: %d\n", result.error().code());
+        ssgx::utils_t::Printf("Error message: %s\n\n", result.error().message().c_str());
+        ASSERT_TRUE(false);
+    }
+    ASSERT_EQ(result->StatusCode(), ssgx::http_t::HttpStatusCode::InternalServerError500);
+}
+
 int ecall_run_server(int alive_time_sec) {
     Server srv;
     std::string url = "http://0.0.0.0:83";
     srv.Listen(url);
     srv.Get("/sample1", [](auto& req, auto& resp) { GetHandler(req, resp); });
     srv.Post("/sample2", [](auto& req, auto& resp) { PostHandler(req, resp); });
+    srv.Post("/handlerthrow", [](auto& req, auto& resp) { HandlerThrowException(req, resp); });
     srv.AddFilter(std::make_unique<TimingFilter>());
 
     if (!srv.Start()) {
