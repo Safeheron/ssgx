@@ -90,7 +90,13 @@ class FilterChain {
             }
         }
 
-        handler(request, response);
+        try {
+            handler(request, response);
+        } catch (const std::exception& ex) {
+            response.SetResp("Internal Server Error: " + std::string(ex.what()), "text/plain", HttpStatusCode::InternalServerError500);
+        } catch (...) {
+            response.SetResp("Internal Server Error: Unknown exception", "text/plain", HttpStatusCode::InternalServerError500);
+        }
 
         for (auto& filter : filters_) {
             filter->After(request, response);

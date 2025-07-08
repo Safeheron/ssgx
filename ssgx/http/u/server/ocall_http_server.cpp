@@ -3,6 +3,8 @@
 #include "mbedtls/net_sockets.h"
 
 #include "ssgx_http_t_u.h"
+#include "ssgx_http_u.h"
+#include "SSGXHttpServer.h"
 
 #include "../../../common/auxilliary.h"
 #include "../../share/ObjectRegistry.h"
@@ -35,15 +37,22 @@ extern "C" int ssgx_ocall_http_create_listener(uint64_t sgx_eid, const char* url
 
     // Create a new server listener
     int ret = 0;
-    HTTPServer* the_server = nullptr;
+    SSGXHttpServer* the_server = nullptr;
     try {
         Poco::URI uri(url);
-        const std::string& host = uri.getHost();
-        Poco::UInt16 port = uri.getPort();
-        Poco::Net::SocketAddress svs(host, port);
-        the_server = new HTTPServer(new RequestHandlerFactory(sgx_eid, server_id), svs, params);
-        the_server->start();
-        ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Register(server_id, the_server, true);
+
+        SSGXHttpServerConfig config;
+        config.host_ = uri.getHost();
+        config.port_ = uri.getPort();
+        config.max_threads_ = static_cast<int>(max_threads);
+        config.max_queued_requests_ = static_cast<int>(max_queued);
+        config.timeout_seconds_ = static_cast<int>(timeout_seconds);
+        config.sgx_eid_ = sgx_eid;
+        config.server_id_ = server_id;
+
+        the_server = new SSGXHttpServer(config);
+        the_server->Start();
+        ssgx::internal::ObjectRegistry<std::string, SSGXHttpServer>::Register(server_id, the_server, true);
         ret = 0;
     } catch (const Poco::Exception& e) {
         ret = -2;
@@ -66,8 +75,8 @@ extern "C" void ssgx_ocall_http_release_listener(const char* server_id) {
     }
 
     try {
-        if (auto the_server = ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Query(server_id); !the_server) {
-            the_server->stop();
+        if (auto the_server = ssgx::internal::ObjectRegistry<std::string, SSGXHttpServer>::Query(server_id)) {
+            the_server->Stop();
         }
     } catch (const Poco::Exception& e) {
         // Encounter a Poco exception, ignore it silently.
@@ -76,5 +85,9 @@ extern "C" void ssgx_ocall_http_release_listener(const char* server_id) {
     } catch (...) {
         // Silently ignore other exceptions
     }
-    ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Unregister(server_id);
+    ssgx::internal::ObjectRegistry<std::string, SSGXHttpServer>::Unregister(server_id);
+}
+
+extern "C" int ssgx_ocall_http_get_server_stop_flag() {
+    return SignalFlag::GetStopFlag() ? 1 : 0;
 }

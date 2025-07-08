@@ -105,26 +105,8 @@ function(ssgx_add_trusted_library target)
 
     if(${SGX_USE_SGXSSL})
         target_include_directories(${target} PRIVATE ${SSGX_ENV__SGXSSL_INCLUDE_PATH})
-        target_link_libraries(${target} PUBLIC ${COMPLETE_DEPS})
-        target_link_options(${target} PRIVATE ${SGX_COMMON_CFLAGS}
-                -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L${SSGX_ENV__SGXSDK_LIBRARY_DIR} -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
-                -Wl,--whole-archive -l${SGX_TRTS_LIB} -lsgx_tsgxssl -Wl,--no-whole-archive
-                -Wl,--start-group -lsgx_dcap_tvl -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_pthread -lsgx_tcxx -lsgx_tkey_exchange -lsgx_tcrypto -l${SGX_TSVC_LIB} -lsgx_tprotected_fs -lsgx_protobuf -Wl,--end-group
-                -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined
-                -Wl,-pie,-eenclave_entry -Wl,--export-dynamic
-                ${LDSCRIPT_FLAG}
-                -Wl,--defsym,__ImageBase=0)
-    else()
-        target_link_libraries(${target} PUBLIC ${COMPLETE_DEPS})
-        target_link_options(${target} PRIVATE ${SGX_COMMON_CFLAGS}
-                -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
-                -Wl,--whole-archive -l${SGX_TRTS_LIB} -Wl,--no-whole-archive
-                -Wl,--start-group -lsgx_dcap_tvl -lsgx_tstdc -lsgx_pthread -lsgx_tcxx -lsgx_tkey_exchange -lsgx_tcrypto -l${SGX_TSVC_LIB} -lsgx_tprotected_fs -lsgx_protobuf -Wl,--end-group
-                -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined
-                -Wl,-pie,-eenclave_entry -Wl,--export-dynamic
-                ${LDSCRIPT_FLAG}
-                -Wl,--defsym,__ImageBase=0)
     endif()
+    target_link_libraries(${target} PUBLIC ${COMPLETE_DEPS})
 endfunction()
 
 # --------------------------------------------------------------------------------------------------
@@ -231,22 +213,70 @@ function(ssgx_add_enclave_library target)
 
     if(${SGX_USE_SGXSSL})
         target_include_directories(${target} PRIVATE ${SSGX_ENV__SGXSSL_INCLUDE_PATH})
-        target_link_libraries(${target} PRIVATE ${SGX_COMMON_CFLAGS}
-                -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L${SSGX_ENV__SGXSDK_LIBRARY_DIR} -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
-                -Wl,--whole-archive -l${SGX_TRTS_LIB} -lsgx_tsgxssl -Wl,--no-whole-archive
-                -Wl,--start-group ${COMPLETE_DEPS} -lsgx_dcap_tvl -lsgx_tsgxssl_crypto -lsgx_tstdc -lsgx_pthread -lsgx_tcxx -lsgx_tkey_exchange -lsgx_tcrypto -l${SGX_TSVC_LIB} -lsgx_tprotected_fs -lsgx_protobuf -Wl,--end-group
-                -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined
-                -Wl,-pie,-eenclave_entry -Wl,--export-dynamic
+        target_link_options(${target} PRIVATE
+                -nostdlib
+                -nodefaultlibs
+                -nostartfiles
+                -Wl,--no-undefined
+                -Wl,-Bstatic
+                -Wl,-Bsymbolic
+                -Wl,-pie,-eenclave_entry
+                -Wl,--export-dynamic
+                -Wl,--defsym,__ImageBase=0
                 ${LDSCRIPT_FLAG}
-                -Wl,--defsym,__ImageBase=0)
+        )
+        target_link_libraries(${target} PUBLIC
+                -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
+                -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
+                -Wl,--whole-archive
+                    -l${SGX_TRTS_LIB}
+                    -lsgx_tsgxssl
+                -Wl,--no-whole-archive
+                -Wl,--start-group
+                    -lsgx_dcap_tvl
+                    -lsgx_tsgxssl_crypto
+                    -lsgx_tstdc
+                    -lsgx_pthread
+                    -lsgx_tcxx
+                    -lsgx_tkey_exchange
+                    -lsgx_tcrypto
+                    -lsgx_tprotected_fs
+                    -lsgx_protobuf
+                    -l${SGX_TSVC_LIB}
+                    ${COMPLETE_DEPS}
+                -Wl,--end-group
+        )
     else()
-        target_link_libraries(${target} PRIVATE ${SGX_COMMON_CFLAGS}
-                -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
-                -Wl,--whole-archive -l${SGX_TRTS_LIB} -Wl,--no-whole-archive
-                -Wl,--start-group ${COMPLETE_DEPS} -lsgx_dcap_tvl -lsgx_tstdc -lsgx_tcxx -lsgx_tkey_exchange -lsgx_tcrypto -l${SGX_TSVC_LIB} -lsgx_tprotected_fs -lsgx_protobuf -Wl,--end-group
-                -Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined
-                -Wl,-pie,-eenclave_entry -Wl,--export-dynamic
+        target_link_options(${target} PRIVATE
+                -nostdlib
+                -nodefaultlibs
+                -nostartfiles
+                -Wl,--no-undefined
+                -Wl,-Bstatic
+                -Wl,-Bsymbolic
+                -Wl,-pie,-eenclave_entry
+                -Wl,--export-dynamic
+                -Wl,--defsym,__ImageBase=0
                 ${LDSCRIPT_FLAG}
-                -Wl,--defsym,__ImageBase=0)
+        )
+        target_link_libraries(${target} PUBLIC
+                -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
+                -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
+                -Wl,--whole-archive
+                    -l${SGX_TRTS_LIB}
+                -Wl,--no-whole-archive
+                -Wl,--start-group
+                    -lsgx_dcap_tvl
+                    -lsgx_tstdc
+                    -lsgx_pthread
+                    -lsgx_tcxx
+                    -lsgx_tkey_exchange
+                    -lsgx_tcrypto
+                    -lsgx_tprotected_fs
+                    -lsgx_protobuf
+                    -l${SGX_TSVC_LIB}
+                    ${COMPLETE_DEPS}
+                -Wl,--end-group
+        )
     endif()
 endfunction()

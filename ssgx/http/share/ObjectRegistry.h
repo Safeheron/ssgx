@@ -1,6 +1,7 @@
 #ifndef SSGXLIB_OBJECTREGISTRY_H
 #define SSGXLIB_OBJECTREGISTRY_H
 
+#include <vector>
 #include <mutex>
 #include <unordered_map>
 
@@ -16,6 +17,20 @@ template <typename TKey, typename T>
 class ObjectRegistry {
   public:
     ObjectRegistry() = delete; // Prevent instantiation
+
+    /**
+     * @brief Returns a vector containing all keys currently stored in the registry.
+     * @return A vector of keys.
+     */
+    static std::vector<TKey> GetAllKeys() {
+        std::lock_guard<std::mutex> lock(mutex_);
+        std::vector<TKey> keys;
+        keys.reserve(registry_.size());
+        for (const auto& entry : registry_) {
+            keys.push_back(entry.first);
+        }
+        return keys;
+    }
 
     /**
      * @brief Queries an object by key.

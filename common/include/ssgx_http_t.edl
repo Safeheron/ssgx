@@ -23,6 +23,8 @@ enclave {
                                             uint64_t max_threads,
                                             uint64_t max_queued);
         void ssgx_ocall_http_release_listener([string,in] const char *server_id);
+
+        int ssgx_ocall_http_get_server_stop_flag();
     };
 
 };

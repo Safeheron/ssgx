@@ -82,15 +82,6 @@ function(ssgx_add_untrusted_library target mode)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${APP_INC_DIRS})
 
     target_link_libraries(${target} PUBLIC ${COMPLETE_DEPS})
-    target_link_libraries(${target} PRIVATE ${SGX_COMMON_CFLAGS}
-            -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
-            -l${SGX_URTS_LIB}
-            -l${SGX_USVC_LIB}
-            -lsgx_ukey_exchange
-            -lpthread
-            -lsgx_dcap_ql
-            -lsgx_quote_ex
-            -lsgx_dcap_quoteverify)
 
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${CMAKE_CURRENT_BINARY_DIR}/${EDL_NAME}_u.h")
 endfunction()
@@ -177,16 +168,17 @@ function(ssgx_add_untrusted_executable target)
             $<$<COMPILE_LANGUAGE:CXX>:${APP_CXX_FLAGS}>
     )
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${APP_INC_DIRS})
-    target_link_libraries(${target} PRIVATE ${SGX_COMMON_CFLAGS}
+    target_link_libraries(${target} PRIVATE
             -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
             -l${SGX_URTS_LIB}
             -l${SGX_USVC_LIB}
             -lsgx_ukey_exchange
             -lsgx_uprotected_fs
-            ${COMPLETE_DEPS}
             -lpthread
             -lsgx_dcap_ql
             -lsgx_quote_ex
-            -lsgx_dcap_quoteverify)
+            -lsgx_dcap_quoteverify
+            ${COMPLETE_DEPS}
+    )
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES ${EDL_U_HDRS})
 endfunction()

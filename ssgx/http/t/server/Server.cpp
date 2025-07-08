@@ -73,6 +73,12 @@ void Server::Stop() {
     is_stopped_ = true;
 }
 
+bool Server::ShouldStop() const {
+    int ret = 0;
+    sgx_status_t status = ssgx_ocall_http_get_server_stop_flag(&ret);
+    return (status == SGX_SUCCESS) && (ret != 0);
+}
+
 /// Destructor: Ensures cleanup if `stop()` was never called
 Server::~Server() {
     Stop(); // Now safe from duplicate calls

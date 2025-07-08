@@ -31,6 +31,11 @@
 # [4] entry path
 # -----------------------------------------------------
 # - SSGX_ENV__CMAKE_ENTRY_PATH
+#
+# [5] shell script
+# -----------------------------------------------------
+# - SSGX_ENV__SHELL_EXECUTABLE           : "bash" for unix; "" for win
+# - SSGX_ENV__SCRIPT_COLOR_ECHO      : path of shell script
 # ============================================================================================
 
 include_guard(GLOBAL)
@@ -134,6 +139,14 @@ set(SSGX_ENV__EDL_SEARCH_PATHS ${SSGX_ENV__SGXSDK}/include /opt/safeheron/ssgx/i
 
 
 set(SSGX_ENV__CMAKE_ENTRY_PATH ${CMAKE_CURRENT_LIST_DIR}/../entrypoints CACHE PATH "CMAKE_ENTRY_PATH of SSGX" FORCE)
+
+if(UNIX OR APPLE)
+    set(SSGX_ENV__SHELL_EXECUTABLE "bash" CACHE STRING "Shell EXECUTABLE" FORCE)
+    set(SSGX_ENV__SCRIPT_COLOR_ECHO ${CMAKE_CURRENT_LIST_DIR}/../scripts/color_echo.sh CACHE FILEPATH "COLOR_ECHO script" FORCE)
+else()
+    set(SSGX_ENV__SHELL_EXECUTABLE "" CACHE STRING "Shell EXECUTABLE" FORCE)
+    set(SSGX_ENV__SCRIPT_COLOR_ECHO ${CMAKE_CURRENT_LIST_DIR}/../scripts/color_echo.bat CACHE FILEPATH "COLOR_ECHO script" FORCE)
+endif()
 
 # ============================================================================================
 # Section 7: Enum Setup: BuildMode {Debug, PreRelease, Release}
@@ -252,7 +265,7 @@ function(ssgx_get_untrusted_env
     endif()
 
     set(t_APP_INC_DIRS ${SSGX_ENV__SGXSDK_INCLUDE_DIR})
-    set(t_APP_C_FLAGS ${SSGX_ENV__SGX_COMMON_CFLAGS} -fPIC -Wno-attributes)
+    set(t_APP_C_FLAGS ${t_SGX_COMMON_CFLAGS} -fPIC -Wno-attributes)
     set(t_APP_CXX_FLAGS ${t_APP_C_FLAGS})
 
     set(${OUT_SGX_URTS_LIB} ${t_SGX_URTS_LIB} PARENT_SCOPE)
