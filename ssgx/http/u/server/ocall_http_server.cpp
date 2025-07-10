@@ -29,12 +29,6 @@ extern "C" int ssgx_ocall_http_create_listener(uint64_t sgx_eid, const char* url
         ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Unregister(server_id);
     }
 
-    // Set server parameters
-    Poco::AutoPtr<HTTPServerParams> params = new HTTPServerParams();
-    params->setMaxThreads(max_threads);
-    params->setMaxQueued(static_cast<int>(max_queued));
-    params->setTimeout(Poco::Timespan(static_cast<long>(timeout_seconds), 0));
-
     // Create a new server listener
     int ret = 0;
     SSGXHttpServer* the_server = nullptr;

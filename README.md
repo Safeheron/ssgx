@@ -52,7 +52,7 @@ We provide a script to install all external dependencies automatically. The defa
 `/opt/safeheron/ssgx`.
 
 ```shell
-sudo chmod+x build_install_external.sh
+sudo chmod a+x build_install_external.sh
 sudo ./build_install_external.sh
 ```
 

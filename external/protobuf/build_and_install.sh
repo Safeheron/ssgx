@@ -55,16 +55,7 @@ git submodule update --init --recursive || { echo "Failed to update submodules";
 echo "Run autogen.sh and configure..."
 ./autogen.sh || { echo "Failed to autogen"; exit 1; }
 
-# Prepare configure arguments. Protobuf is an untrusted library.
-CONFIGURE_ARGS=""
-if [ -n "$untrusted_install_prefix" ]; then
-    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
-    # For autotools, the argument is --prefix
-    CONFIGURE_ARGS="--prefix=$untrusted_install_prefix"
-else
-    echo ">>> No custom installation prefix provided. Will install to system default location (usually /usr/local)."
-fi
-./configure ${CONFIGURE_ARGS} || { echo "Failed to configure"; exit 1; }
+./configure  --prefix=/usr/local --enable-static --disable-shared || { echo "Failed to configure"; exit 1; }
 
 # Build
 echo "Building protobuf..."
@@ -72,6 +63,18 @@ make -j$(nproc) || { echo "Build failed"; exit 1; }
 
 # Install
 echo "Installing protobuf..."
-sudo make install || { echo "Install failed"; exit 1; }
+
+if [ -n "$untrusted_install_prefix" ]; then
+    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
+    sudo make install DESTDIR=/tmp/untrusted_protobuf_staging || { echo "Install failed"; exit 1; }
+    mkdir -p ${untrusted_install_prefix}/include/
+    mkdir -p ${untrusted_install_prefix}/lib/
+    cp -r /tmp/untrusted_protobuf_staging/usr/local/include/*     ${untrusted_install_prefix}/include/
+    cp -r /tmp/untrusted_protobuf_staging/usr/local/lib/*.a       ${untrusted_install_prefix}/lib/
+    cp -r /tmp/untrusted_protobuf_staging/usr/local/lib/pkgconfig ${untrusted_install_prefix}/lib/
+else
+    echo ">>> No custom installation prefix provided. Will install to system default location (usually /usr/local)."
+    sudo make install || { echo "Install failed"; exit 1; }
+fi
 
 echo "Protobuf installation completed successfully."

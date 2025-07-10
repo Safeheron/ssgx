@@ -4,8 +4,10 @@ include(${CMAKE_CURRENT_LIST_DIR}/ssgx_decimal_tTargets.cmake)
 get_filename_component(CMAKE_CURRENT_LIST_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 get_filename_component(_INSTALL_PREFIX "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
 
+set(_ssgx_decimal_t_PREFIX_DIR "${_INSTALL_PREFIX}")  # stage _INSTALL_PREFIX
 include(${CMAKE_CURRENT_LIST_DIR}/../mpdecimal_SGX/mpdecimal_SGXTargets.cmake)
 find_dependency(mpdecimal_SGX REQUIRED)
+set(_INSTALL_PREFIX "${_ssgx_decimal_t_PREFIX_DIR}")  # restore _INSTALL_PREFIX
 
 @PACKAGE_INIT@
 set_and_check(ssgx_decimal_t_INCLUDE_DIR  "${_INSTALL_PREFIX}/include")

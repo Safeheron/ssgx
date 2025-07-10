@@ -60,11 +60,15 @@ echo "Checking out version ${NLOHMANN_VERSION}..."
 git checkout "${NLOHMANN_VERSION}"
 
 # Install the unpatched library to the system default directory
-UNTRUSTED_INSTALL_DIR="${untrusted_install_prefix:-/usr/local}/include"  # Target installation directory, default to /opt/safeheron/ssgx
+UNTRUSTED_INSTALL_DIR="${untrusted_install_prefix:-/usr/local}"  # Target installation directory, default to /opt/safeheron/ssgx
 
 echo "Installing unpatched library headers to ${UNTRUSTED_INSTALL_DIR}..."
 sudo mkdir -p "${UNTRUSTED_INSTALL_DIR}"
-sudo cp -r "${CLONE_DIR}/include/nlohmann" "${UNTRUSTED_INSTALL_DIR}/"
+# sudo cp -r "${CLONE_DIR}/include/nlohmann" "${UNTRUSTED_INSTALL_DIR}/"
+
+cmake -B build -DCMAKE_INSTALL_PREFIX=${UNTRUSTED_INSTALL_DIR} -DJSON_BuildTests=OFF -DJSON_BuildExamples=OFF
+cmake --build build
+cmake --install build
 
 # Apply the patch file
 if [ -f "${PATCH_FILE}" ]; then

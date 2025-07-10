@@ -1,6 +1,7 @@
 set(LIB_NAME "ssgx_attestation_u")
 set(NAMESPACE "ssgx")
 
+find_package(OpenSSL REQUIRED)
 find_package(SafeheronCryptoSuites REQUIRED)
 
 ssgx_add_untrusted_library(${LIB_NAME} SHARED
@@ -20,7 +21,7 @@ include_directories(
 target_link_libraries(${LIB_NAME} PUBLIC
         -lsgx_dcap_ql -lsgx_quote_ex -lsgx_dcap_quoteverify
         -lcrypto
-        ${SafeheronCryptoSuites_LIBRARY}
+        SafeheronCryptoSuites
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

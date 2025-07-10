@@ -15,19 +15,19 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --trusted-install-prefix)
             if [[ -n "$2" && "$2" != --* ]]; then
-                trusted_install_prefix="$2"
+                trusted_install_prefix_val="$2"
                 shift 2
             else
                 echo "Error: --trusted-install-prefix requires a non-empty value." >&2
                 exit 1
             fi
             ;;
-        --untrusted-install-prefix)
+        --install_libs_together)
             if [[ -n "$2" && "$2" != --* ]]; then
-                untrusted_install_prefix="$2"
+                install_libs_together_val="$2"
                 shift 2
             else
-                echo "Error: --untrusted-install-prefix requires a non-empty value." >&2
+                echo "Error: --install_libs_together requires a non-empty value." >&2
                 exit 1
             fi
             ;;
@@ -78,7 +78,7 @@ if [ -n "$trusted_install_prefix_val" ]; then
     sub_script_args+=(--trusted-install-prefix "$trusted_install_prefix_val")
 
     if [[ "$install_libs_together_val" == "true" ]]; then
-        local untrusted_path="${trusted_install_prefix_val}/__untrusted_dependencies"
+        untrusted_path="${trusted_install_prefix_val}/__untrusted_dependencies"
         echo "Install Untrusted Libs Together: YES"
         echo "Path for Untrusted Libs: $untrusted_path"
         # Add the second argument and its value to the array.
@@ -92,11 +92,11 @@ fi
 echo "---------------------------"
 
 # --- 4. Define Dependencies and Execute Installation ---
-script_proto="${BASE_DIR}/protobuf/build_and_install.sh"
+script_proto="${base_dir}/protobuf/build_and_install.sh"
 log "Processing dependency: protobuf"
 execute_script "$script_proto" "${sub_script_args[@]}"
 
-declare -A EXTERNAL_DEPENDENCIES=(
+declare -A external_dependencies=(
     ["log4cplus"]="install.sh"
     ["mbedtls"]="build_and_install_mbedtls_SGX.sh"
     ["mpdecimal"]="build_and_install.sh"
@@ -108,8 +108,8 @@ declare -A EXTERNAL_DEPENDENCIES=(
 
 # Iterate and call each script, passing the constructed argument list.
 for dependency in "${!external_dependencies[@]}"; do
-    local script_name="${external_dependencies[$dependency]}"
-    local script_path="${base_dir}/${dependency}/${script_name}"
+    script_name="${external_dependencies[$dependency]}"
+    script_path="${base_dir}/${dependency}/${script_name}"
 
     log "Processing dependency: $dependency"
     # The expansion "${sub_script_args[@]}" correctly passes all elements of the array as separate arguments.
