@@ -21,7 +21,7 @@ libraries (except Poco) into a single directory.
     ./build_install_external.sh
 ```
 
-### 2.3 When compiling with CMake
+### 2.2 When compiling with CMake
 
 Modify CMakePresets.json and add the following path to CMAKE_PREFIX_PATH:
 "/opt/safeheron/ssgx/__untrusted_dependencies"

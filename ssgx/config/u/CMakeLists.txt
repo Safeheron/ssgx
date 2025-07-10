@@ -20,9 +20,9 @@ target_include_directories(${LIB_NAME} PRIVATE
         ${CMAKE_SOURCE_DIR}/common/include/
 )
 
-target_link_libraries(${LIB_NAME}
+target_link_libraries(${LIB_NAME} PRIVATE
         ${LOG4CPLUS_LIBRARIES}
-        PRIVATE nlohmann_json::nlohmann_json
+        nlohmann_json::nlohmann_json
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
