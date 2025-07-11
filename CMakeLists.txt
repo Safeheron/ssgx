@@ -5,8 +5,6 @@ set(PROJECT_VERSION 1.1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include_directories(common/include)
-
 option(ENABLE_TEST "Enable tests" OFF)
 if (${ENABLE_TEST})
     enable_testing()
@@ -16,6 +14,7 @@ if (${ENABLE_TEST})
     add_test(NAME basic_test COMMAND basic_test_app ${CMAKE_BINARY_DIR}/test/BasicTest/enc/basic_test_enclave.signed.so)
     add_test(NAME http_test COMMAND http_test_app ${CMAKE_BINARY_DIR}/test/HttpTest/enc/http_test_enclave.signed.so)
 else()
+    include_directories(common/include)
     add_subdirectory(ssgx)
     # For IDE(Begin SSGX)
     # Define an explicit build target for SSGX

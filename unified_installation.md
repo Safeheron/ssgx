@@ -12,13 +12,13 @@ libraries (except Poco) into a single directory.
 - New method:
 
 ```shell
-    ./build_install_external.sh --trusted-install-prefix /opt/safeheron/ssgx --install_libs_together true
+./build_install_external.sh --trusted-install-prefix /opt/safeheron/ssgx --install_libs_together true
 ```
 
 - Original method:
 
 ```shell
-    ./build_install_external.sh
+./build_install_external.sh
 ```
 
 ### 2.2 When compiling with CMake

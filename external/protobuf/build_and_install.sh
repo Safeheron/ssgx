@@ -52,29 +52,29 @@ git checkout "$VERSION" || { echo "Failed to checkout version $VERSION"; exit 1;
 echo "Initializing and updating submodules..."
 git submodule update --init --recursive || { echo "Failed to update submodules"; exit 1; }
 
-echo "Run autogen.sh and configure..."
-./autogen.sh || { echo "Failed to autogen"; exit 1; }
-
-./configure  --prefix=/usr/local --enable-static --disable-shared || { echo "Failed to configure"; exit 1; }
-
-# Build
-echo "Building protobuf..."
-make -j$(nproc) || { echo "Build failed"; exit 1; }
-
-# Install
-echo "Installing protobuf..."
-
-if [ -n "$untrusted_install_prefix" ]; then
-    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
-    sudo make install DESTDIR=/tmp/untrusted_protobuf_staging || { echo "Install failed"; exit 1; }
-    mkdir -p ${untrusted_install_prefix}/include/
-    mkdir -p ${untrusted_install_prefix}/lib/
-    cp -r /tmp/untrusted_protobuf_staging/usr/local/include/*     ${untrusted_install_prefix}/include/
-    cp -r /tmp/untrusted_protobuf_staging/usr/local/lib/*.a       ${untrusted_install_prefix}/lib/
-    cp -r /tmp/untrusted_protobuf_staging/usr/local/lib/pkgconfig ${untrusted_install_prefix}/lib/
-else
-    echo ">>> No custom installation prefix provided. Will install to system default location (usually /usr/local)."
-    sudo make install || { echo "Install failed"; exit 1; }
+# Remove existing build directory if it exists
+if [ -d "build" ]; then
+    echo "Removing existing build directory..."
+    rm -rf build
 fi
+
+# Configure
+mkdir -p build && cd build
+
+cmake ../cmake \
+  -DCMAKE_INSTALL_PREFIX=${untrusted_install_prefix} \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DBUILD_SHARED_LIBS=OFF \
+  -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+  -Dprotobuf_BUILD_TESTS=OFF \
+  -Dprotobuf_BUILD_EXAMPLES=OFF \
+  -Dprotobuf_WITH_ZLIB=OFF \
+  -Dprotobuf_BUILD_PROTOC_BINARIES=ON
+
+# Build and install
+make -j$(nproc)
+
+echo "Installing protobuf to: ${untrusted_install_prefix}"
+sudo make install
 
 echo "Protobuf installation completed successfully."

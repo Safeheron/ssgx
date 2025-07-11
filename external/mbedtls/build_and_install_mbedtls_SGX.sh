@@ -30,7 +30,7 @@ REPO_URL="https://github.com/Safeheron/mbedtls-SGX.git"  # URL of the mbedtls-SG
 CLONE_DIR="${TOP_DIR}/mbedtls-SGX"  # Absolute path for cloning the repository
 BUILD_DIR="${CLONE_DIR}/build"  # Absolute path for the build directory
 INSTALL_PREFIX="${trusted_install_prefix:-/opt/safeheron/ssgx}"  # Target installation directory, default to /opt/safeheron/ssgx
-TARGET_TAG="f6901462b8cf809b2e17bcd9688a042d0f7d3b0d"  # commit in branch 'master', tag 'v3.6.3_sgx_2'
+TARGET_TAG="a2935a151d9abd904f433d845e6e43d745e3b531"  # commit in branch 'master', tag 'v3.6.3_sgx_2'
 
 # Clone the mbedtls-SGX repository
 if [ -d "${CLONE_DIR}" ]; then

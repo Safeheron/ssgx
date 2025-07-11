@@ -39,7 +39,7 @@ TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
 REPO_URL="https://github.com/Safeheron/safeheron-crypto-suites-cpp.git"
 REPO_DIR="${TOP_DIR}/safeheron-crypto-suites-cpp"
 SGX_VERSION_TAG="291613e138cbb9cb8e7b646ee4767d123a5198b9"   # SGX-specific version(sgx_dev branch)
-UNTRUSTED_VERSION_TAG="d193dd7ba29e02a8f4705b9698bbb49f0939016a" # Untrusted version (main branch)
+UNTRUSTED_VERSION_TAG="e63d96cba3fafe1bd34aed852c9f5fd5e7a86a9c" # Untrusted version (main branch)
 
 # Install locations
 SGX_INSTALL_PREFIX="/opt/safeheron/ssgx"   # default
