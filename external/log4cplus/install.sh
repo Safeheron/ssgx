@@ -24,24 +24,35 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-
+# --- MODIFIED SECTION START ---
 
 # Define variables
-TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+# The directory where this script is located (i.e., external/log4plus)
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+# The root directory for build outputs, relative to the script's location (i.e., external/build_tree/log4plus)
+BUILD_ROOT_DIR="$(dirname "$SCRIPT_DIR")/build_tree/log4plus"
+
+# Create the root build directory if it doesn't already exist
+echo "Ensuring build root directory exists at: ${BUILD_ROOT_DIR}"
+mkdir -p "$BUILD_ROOT_DIR"
+
 REPO_URL="https://github.com/log4cplus/log4cplus.git"
-REPO_DIR="${TOP_DIR}/log4cplus"
+# Source code will be cloned into a subdirectory of the build root
+REPO_DIR="${BUILD_ROOT_DIR}/log4cplus"
 VERSION="REL_2_0_8"
-BUILD_DIR="${REPO_DIR}/build"
+# Build artifacts will be generated in a separate 'build' subdirectory
+BUILD_DIR="${BUILD_ROOT_DIR}/build"
+
+# --- MODIFIED SECTION END ---
 
 # Clone the repository if it doesn't already exist
 if [ ! -d "$REPO_DIR" ]; then
-    echo "Cloning log4cplus repository..."
+    echo "Cloning log4cplus repository into ${REPO_DIR}..."
     git clone "$REPO_URL" "$REPO_DIR" || { echo "Failed to clone repository"; exit 1; }
 else
     echo "Repository already cloned. Pulling latest changes..."
     cd "$REPO_DIR" || exit 1
     git fetch origin || { echo "Failed to fetch latest changes"; exit 1; }
-    cd "$TOP_DIR" || exit 1
 fi
 
 # Navigate to the repository
@@ -57,7 +68,7 @@ git submodule update --init --recursive || { echo "Failed to update submodules";
 
 # Create the build directory if it doesn't exist
 if [ ! -d "$BUILD_DIR" ]; then
-    echo "Creating the build directory..."
+    echo "Creating the build directory at ${BUILD_DIR}..."
     mkdir -p "$BUILD_DIR" || { echo "Failed to create build directory"; exit 1; }
 fi
 
@@ -74,11 +85,15 @@ if [ -n "$untrusted_install_prefix" ]; then
 fi
 
 # Configure the project with CMake
+# The source directory is now explicitly passed as REPO_DIR
 echo "Configuring log4cplus with CMake..."
-cmake .. ${CMAKE_ARGS} || { echo "CMake configuration failed"; exit 1; }
+cmake "${REPO_DIR}" ${CMAKE_ARGS} || { echo "CMake configuration failed"; exit 1; }
 
 # Build and install
 echo "Building and installing log4cplus..."
 sudo make install || { echo "Build and installation failed"; exit 1; }
 
 echo "log4cplus installation completed successfully."
+
+# Return to the original script directory for good practice
+cd "$SCRIPT_DIR" || exit 1

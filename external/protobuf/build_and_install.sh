@@ -24,45 +24,62 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Define variables
-TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
-REPO_URL="https://github.com/protocolbuffers/protobuf.git"
-REPO_DIR="${TOP_DIR}/protobuf"
-VERSION="v3.20.0"
+# --- MODIFIED SECTION START ---
 
-# Clone the repository if it doesn't already exist
-if [ ! -d "$REPO_DIR" ]; then
-    echo "Cloning protobuf repository..."
-    git clone "$REPO_URL" "$REPO_DIR" || { echo "Failed to clone repository"; exit 1; }
+# Define variables based on the new directory structure
+# The directory where this script is located (i.e., external/protobuf)
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+# All intermediate products go into external/build_tree/protobuf
+BUILD_ROOT_DIR="$(dirname "$SCRIPT_DIR")/build_tree/protobuf"
+
+# Create the root build directory if it doesn't already exist
+echo "Ensuring build root directory exists at: ${BUILD_ROOT_DIR}"
+mkdir -p "$BUILD_ROOT_DIR"
+
+# Source code will be cloned into a subdirectory of the build root
+REPO_DIR="${BUILD_ROOT_DIR}/protobuf"
+# Build artifacts will be generated in a separate 'build' subdirectory
+BUILD_DIR="${BUILD_ROOT_DIR}/build"
+
+# --- MODIFIED SECTION END ---
+
+# Configuration variables
+REPO_URL="https://github.com/protocolbuffers/protobuf.git"
+VERSION="v3.20.0"
+# Set default install prefix if not provided
+INSTALL_PREFIX="${untrusted_install_prefix:-/usr/local}"
+
+
+# Clone the repository if it doesn't exist, otherwise fetch latest changes.
+if [ ! -d "${REPO_DIR}" ]; then
+    echo "Cloning protobuf repository into '${REPO_DIR}'..."
+    git clone "${REPO_URL}" "${REPO_DIR}"
 else
-    echo "Repository already cloned. Pulling latest changes..."
-    cd "$REPO_DIR" || exit 1
-    git fetch origin || { echo "Failed to fetch latest changes"; exit 1; }
-    cd "$TOP_DIR" || exit 1
+    echo "Repository directory already exists. Fetching latest changes..."
+    cd "${REPO_DIR}"
+    git fetch origin
 fi
 
-# Navigate to the repository
-cd "$REPO_DIR" || exit 1
+# Navigate to the repository directory
+cd "${REPO_DIR}"
 
 # Check out the specific branch or tag
 echo "Checking out version $VERSION..."
-git checkout "$VERSION" || { echo "Failed to checkout version $VERSION"; exit 1; }
+git checkout "$VERSION"
 
 # Update and initialize submodules
 echo "Initializing and updating submodules..."
-git submodule update --init --recursive || { echo "Failed to update submodules"; exit 1; }
+git submodule update --init --recursive
 
-# Remove existing build directory if it exists
-if [ -d "build" ]; then
-    echo "Removing existing build directory..."
-    rm -rf build
-fi
+# Create the build directory
+mkdir -p "${BUILD_DIR}"
+cd "${BUILD_DIR}"
 
-# Configure
-mkdir -p build && cd build
-
-cmake ../cmake \
-  -DCMAKE_INSTALL_PREFIX=${untrusted_install_prefix} \
+# Configure the project with CMake for an out-of-source build
+# Note that protobuf's CMakeLists.txt is in a 'cmake' subdirectory
+echo "Configuring protobuf with CMake..."
+cmake "${REPO_DIR}/cmake" \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
   -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   -DBUILD_SHARED_LIBS=OFF \
   -Dprotobuf_BUILD_SHARED_LIBS=OFF \
@@ -71,10 +88,15 @@ cmake ../cmake \
   -Dprotobuf_WITH_ZLIB=OFF \
   -Dprotobuf_BUILD_PROTOC_BINARIES=ON
 
-# Build and install
+# Build the project
+echo "Building protobuf..."
 make -j$(nproc)
 
-echo "Installing protobuf to: ${untrusted_install_prefix}"
+# Install the project
+echo "Installing protobuf to: ${INSTALL_PREFIX}"
 sudo make install
 
 echo "Protobuf installation completed successfully."
+
+# Return to the original script directory for good practice
+cd "$SCRIPT_DIR" || exit 1
