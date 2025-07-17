@@ -72,6 +72,8 @@ git checkout "${TARGET_TAG}"
 echo "Resetting repository to a clean state..."
 git reset --hard HEAD
 
+git clean -fdx
+
 # Apply the patch file
 if [ -f "${PATCH_FILE}" ]; then
     echo "Applying patch: ${PATCH_FILE}..."

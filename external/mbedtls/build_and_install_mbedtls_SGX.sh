@@ -42,7 +42,7 @@ BUILD_DIR="${BUILD_ROOT_DIR}/build"
 
 # Configuration variables
 INSTALL_PREFIX="${trusted_install_prefix:-/opt/safeheron/ssgx}"  # Target installation directory, default to /opt/safeheron/ssgx
-TARGET_TAG="a2935a151d9abd904f433d845e6e43d745e3b531"  # commit in branch 'master', tag 'v3.6.3_sgx_2'
+TARGET_TAG="074b21e2bf206b05d114c7cdac0db0f36fd4d0bd"  # commit in branch 'master', tag 'v3.6.3_sgx_2'
 
 
 # --- MODIFIED SECTION: Clone or Update Repository ---
