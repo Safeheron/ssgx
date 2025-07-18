@@ -21,7 +21,7 @@ This project is built based on the **SGX SDK** and **installation images**. Plea
 following requirements:
 
 - **Operating System**: Ubuntu 20.04 / 22.04
-- **Build Tools**: `CMake (>=3.19)`, `GCC (>=9.3.0)`, or `Clang`
+- **Build Tools**: `CMake (>=3.24)`, `GCC (>=9.3.0)`, or `Clang`
 - **Ninja**: It is recommended to use Ninja as an alternative to Make.
 - [**Install the Intel SGX SDK & PSW**](https://github.com/intel/linux-sgx)
 - [**Install the Intel(R) SGX DCAP driver**](https://download.01.org/intel-sgx/latest/dcap-latest/linux/docs/Intel_SGX_SW_Installation_Guide_for_Linux.pdf)
