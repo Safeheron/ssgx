@@ -24,54 +24,79 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Define variables
-TOP_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
-REPO_URL="https://github.com/protocolbuffers/protobuf.git"
-REPO_DIR="${TOP_DIR}/protobuf"
-VERSION="v3.20.0"
+# --- MODIFIED SECTION START ---
 
-# Clone the repository if it doesn't already exist
-if [ ! -d "$REPO_DIR" ]; then
-    echo "Cloning protobuf repository..."
-    git clone "$REPO_URL" "$REPO_DIR" || { echo "Failed to clone repository"; exit 1; }
+# Define variables based on the new directory structure
+# The directory where this script is located (i.e., external/protobuf)
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+# All intermediate products go into external/build_tree/protobuf
+BUILD_ROOT_DIR="$(dirname "$SCRIPT_DIR")/build_tree/protobuf"
+
+# Create the root build directory if it doesn't already exist
+echo "Ensuring build root directory exists at: ${BUILD_ROOT_DIR}"
+mkdir -p "$BUILD_ROOT_DIR"
+
+# Source code will be cloned into a subdirectory of the build root
+REPO_DIR="${BUILD_ROOT_DIR}/protobuf"
+# Build artifacts will be generated in a separate 'build' subdirectory
+BUILD_DIR="${BUILD_ROOT_DIR}/build"
+
+# --- MODIFIED SECTION END ---
+
+# Configuration variables
+REPO_URL="https://github.com/protocolbuffers/protobuf.git"
+VERSION="v3.20.0"
+# Set default install prefix if not provided
+INSTALL_PREFIX="${untrusted_install_prefix:-/usr/local}"
+
+
+# Clone the repository if it doesn't exist, otherwise fetch latest changes.
+if [ ! -d "${REPO_DIR}" ]; then
+    echo "Cloning protobuf repository into '${REPO_DIR}'..."
+    git clone "${REPO_URL}" "${REPO_DIR}"
 else
-    echo "Repository already cloned. Pulling latest changes..."
-    cd "$REPO_DIR" || exit 1
-    git fetch origin || { echo "Failed to fetch latest changes"; exit 1; }
-    cd "$TOP_DIR" || exit 1
+    echo "Repository directory already exists. Fetching latest changes..."
+    cd "${REPO_DIR}"
+    git fetch origin
 fi
 
-# Navigate to the repository
-cd "$REPO_DIR" || exit 1
+# Navigate to the repository directory
+cd "${REPO_DIR}"
 
 # Check out the specific branch or tag
 echo "Checking out version $VERSION..."
-git checkout "$VERSION" || { echo "Failed to checkout version $VERSION"; exit 1; }
+git checkout "$VERSION"
 
 # Update and initialize submodules
 echo "Initializing and updating submodules..."
-git submodule update --init --recursive || { echo "Failed to update submodules"; exit 1; }
+git submodule update --init --recursive
 
-echo "Run autogen.sh and configure..."
-./autogen.sh || { echo "Failed to autogen"; exit 1; }
+# Create the build directory
+mkdir -p "${BUILD_DIR}"
+cd "${BUILD_DIR}"
 
-# Prepare configure arguments. Protobuf is an untrusted library.
-CONFIGURE_ARGS=""
-if [ -n "$untrusted_install_prefix" ]; then
-    echo ">>> Custom installation prefix for untrusted library detected: $untrusted_install_prefix"
-    # For autotools, the argument is --prefix
-    CONFIGURE_ARGS="--prefix=$untrusted_install_prefix"
-else
-    echo ">>> No custom installation prefix provided. Will install to system default location (usually /usr/local)."
-fi
-./configure ${CONFIGURE_ARGS} || { echo "Failed to configure"; exit 1; }
+# Configure the project with CMake for an out-of-source build
+# Note that protobuf's CMakeLists.txt is in a 'cmake' subdirectory
+echo "Configuring protobuf with CMake..."
+cmake "${REPO_DIR}/cmake" \
+  -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
+  -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+  -DBUILD_SHARED_LIBS=OFF \
+  -Dprotobuf_BUILD_SHARED_LIBS=OFF \
+  -Dprotobuf_BUILD_TESTS=OFF \
+  -Dprotobuf_BUILD_EXAMPLES=OFF \
+  -Dprotobuf_WITH_ZLIB=OFF \
+  -Dprotobuf_BUILD_PROTOC_BINARIES=ON
 
-# Build
+# Build the project
 echo "Building protobuf..."
-make -j$(nproc) || { echo "Build failed"; exit 1; }
+make -j$(nproc)
 
-# Install
-echo "Installing protobuf..."
-sudo make install || { echo "Install failed"; exit 1; }
+# Install the project
+echo "Installing protobuf to: ${INSTALL_PREFIX}"
+sudo make install
 
 echo "Protobuf installation completed successfully."
+
+# Return to the original script directory for good practice
+cd "$SCRIPT_DIR" || exit 1

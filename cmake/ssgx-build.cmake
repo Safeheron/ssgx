@@ -6,6 +6,7 @@
 
 include_guard(GLOBAL)
 
+include("${CMAKE_CURRENT_LIST_DIR}/internal/ssgx-init.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/internal/ssgx-env.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/internal/ssgx-edl.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/internal/ssgx-sign.cmake")
