@@ -64,10 +64,10 @@ enum class ErrorCode : uint32_t {
     GetSupplementSizeCallException = 0x0012,
 
     /// Failed to retrieve the supplemental data size.
-    GetSupplementSizeFailed = 0x0012,
+    GetSupplementSizeFailed = 0x0013,
 
     /// The actual size of supplemental data did not match the expected value.
-    SupplementSizeIsWrong = 0x0013,
+    SupplementSizeIsWrong = 0x0014,
 
     /// An unspecified or unexpected error occurred.
     Unknown = 0xFFFF
@@ -96,45 +96,45 @@ enum class QvResult : uint32_t {
 
     /// Corresponds to SGX_QL_QV_RESULT_CONFIG_NEEDED.
     /// Quote verification passed, but additional configuration of the platform may be needed.
-    ConfigNeeded = 0x0001,
+    ConfigNeeded = 0xA001,
 
     /// Corresponds to SGX_QL_QV_RESULT_OUT_OF_DATE.
     /// Quote is good, but the platform's TCB level is out of date and patching is required.
-    OutOfDate = 0x0002,
+    OutOfDate = 0xA002,
 
     /// Corresponds to SGX_QL_QV_RESULT_OUT_OF_DATE_CONFIG_NEEDED.
     /// Quote is good, but both patching and additional configuration of the platform are needed.
-    OutOfDateConfigNeeded = 0x0003,
+    OutOfDateConfigNeeded = 0xA003,
 
     /// Corresponds to SGX_QL_QV_RESULT_INVALID_SIGNATURE.
     /// The quote signature is invalid.
-    InvalidSignature = 0x0004,
+    InvalidSignature = 0xA004,
 
     /// Corresponds to SGX_QL_QV_RESULT_REVOKED.
     /// The platform or one of its components has been revoked.
-    Revoked = 0x0005,
+    Revoked = 0xA005,
 
     /// Corresponds to SGX_QL_QV_RESULT_UNSPECIFIED.
     /// The verification result is unspecified or indicates a general failure.
-    Unspecified = 0x0006,
+    Unspecified = 0xA006,
 
     /// Corresponds to SGX_QL_QV_RESULT_SW_HARDENING_NEEDED.
     /// TCB is up to date, but software hardening is required.
-    SwHardeningNeeded = 0x0007,
+    SwHardeningNeeded = 0xA007,
 
     /// Corresponds to SGX_QL_QV_RESULT_CONFIG_AND_SW_HARDENING_NEEDED.
     /// TCB is up to date, but both software hardening and platform configuration are required.
-    ConfigAndSwHardeningNeeded = 0x0008,
+    ConfigAndSwHardeningNeeded = 0xA008,
 
     /// Corresponds to SGX_QL_QV_RESULT_TD_RELAUNCH_ADVISED.
     /// For TDX: TD ran with an outdated TDX module; relaunch or re-provision is advised.
-    TDRelaunchAdvised = 0x0009,
+    TDRelaunchAdvised = 0xA009,
 
     /// Corresponds to SGX_QL_QV_RESULT_TD_RELAUNCH_ADVISED_CONFIG_NEEDED.
     /// For TDX: Same as above, and additional platform configuration is also required.
-    TDRelaunchAdvisedConfigNeeded = 0x000A,
+    TDRelaunchAdvisedConfigNeeded = 0xA00A,
 
     /// Corresponds to SGX_QL_QV_RESULT_MAX.
     /// Maximum defined SGX QVL result value.
-    /// QvResultMax = 0x00FF,
+    /// QvResultMax = 0xA0FF,
 };
