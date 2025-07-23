@@ -14,39 +14,106 @@ using namespace ssgx::filesystem_t;
 using namespace ssgx::attestation_t;
 using namespace ssgx::utils_t;
 using namespace safeheron::hash;
+
+#define PRINT_REMOTE_ATTESTOR_STATUS(attestor)                                                                         \
+    do {                                                                                                               \
+        auto qv = (attestor).GetRawQvResult();                                                                         \
+        auto err_code = (attestor).GetLastErrorCode();                                                                 \
+        auto err_msg = (attestor).GetLastErrorMsg();                                                                   \
+        if (qv.has_value()) {                                                                                          \
+            ssgx::utils_t::Printf("[RemoteAttestor] %s:%d %s()\n"                                                      \
+                                  "  QvResult     : 0x%04X\n"                                                          \
+                                  "  ErrorCode    : %d\n"                                                              \
+                                  "  ErrorMessage : %s\n",                                                             \
+                                  __FILE__, __LINE__, __func__, static_cast<uint32_t>(*qv),                            \
+                                  static_cast<int>(err_code), err_msg.c_str());                                        \
+        } else {                                                                                                       \
+            ssgx::utils_t::Printf("[RemoteAttestor] %s:%d %s()\n"                                                      \
+                                  "  QvResult     : (not available)\n"                                                 \
+                                  "  ErrorCode    : %d\n"                                                              \
+                                  "  ErrorMessage : %s\n",                                                             \
+                                  __FILE__, __LINE__, __func__, static_cast<int>(err_code), err_msg.c_str());          \
+        }                                                                                                              \
+    } while (0)
+
 TEST(AttestationTestSuite, TestQuote) {
     int ret;
     RemoteAttestor attestor;
     std::string quote_report;
     std::string mr_enclave;
     ASSERT_FALSE(attestor.CreateReport("", quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("", quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "") == SGX_SUCCESS &&
                 ret == -1);
 
     ASSERT_TRUE(attestor.CreateReport("1", quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport("1", quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);
 
     int64_t now = DateTime::Now().GetTimestamp();
     ASSERT_FALSE(attestor.CreateReport("", now, quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "") == SGX_SUCCESS &&
                 ret == -1);
 
     ASSERT_TRUE(attestor.CreateReport("1", now, quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport("1", now, 3000, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);
 
     uint8_t report_data[64] = {0};
     ASSERT_TRUE(attestor.CreateReport(report_data, quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(),
                                                       report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -70,9 +137,36 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         "flour "
         "sacks and, furled, it looked like the flag of permanent defeat.";
     ASSERT_TRUE(attestor.CreateReport(user_info, quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("123213213321", quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport(user_info, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("", quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "123213213321") == SGX_SUCCESS &&
                 ret == -1);
@@ -86,16 +180,52 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
     CSHA256 sha256;
     sha256.Write((uint8_t*)user_info.c_str(), user_info.size());
     sha256.Finalize(report_data);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(),
                                                       report_data) == SGX_SUCCESS &&
                 ret == 0);
 
     int64_t now = DateTime::Now().GetTimestamp();
     ASSERT_TRUE(attestor.CreateReport(user_info, now, quote_report));
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("123213213321", now, 3000, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport(user_info, now, 3000, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "123213213321") == SGX_SUCCESS &&
                 ret == -1);
@@ -174,13 +304,39 @@ TEST(AttestationTestSuite, TestUserData) {
         "VHT2RSUTdjdnFSWGFxST0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQoA";
 
     uint8_t report_data[64] = {0};
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("", quote_report_base64, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report_base64, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report_base64.c_str(),
                                                       (int)quote_report_base64.size(), report_data) == SGX_SUCCESS &&
                 ret == 0);
 
     std::string quote_report_bytes = safeheron::encode::base64::DecodeFromBase64(quote_report_base64);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport(report_data, quote_report_bytes, mr_enclave));
 }
 
@@ -192,11 +348,29 @@ TEST(AttestationTestSuite, TestTimestamp) {
     int64_t now = DateTime::Now().GetTimestamp();
     ASSERT_TRUE(attestor.CreateReport("1", now, quote_report));
     Sleep(3);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_FALSE(attestor.VerifyReport("1", now, 1, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 1,
                                              "1") == SGX_SUCCESS &&
                 ret == -1);
+    attestor.SetAcceptableResults({
+        QvResult::Ok,
+        QvResult::ConfigNeeded,
+        QvResult::OutOfDate,
+        QvResult::OutOfDateConfigNeeded,
+        QvResult::SwHardeningNeeded,
+        QvResult::ConfigAndSwHardeningNeeded
+    });
     ASSERT_TRUE(attestor.VerifyReport("1", now, 300, quote_report, mr_enclave));
+    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 300,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);

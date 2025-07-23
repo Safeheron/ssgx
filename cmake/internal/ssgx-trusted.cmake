@@ -248,7 +248,7 @@ function(ssgx_add_enclave_library target)
         list(APPEND LIBS_IN_GROUP -lsgx_tsgxssl_crypto)
     endif()
 
-    # STEP 5: Perform the final linking with a single, clear command.
+    # Perform the final linking with a single, clear command.
     target_link_libraries(${target} PUBLIC
             # Library search paths must still be provided for the linker to find '-l' libraries.
             -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}

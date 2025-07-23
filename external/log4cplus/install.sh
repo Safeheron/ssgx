@@ -24,8 +24,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --- MODIFIED SECTION START ---
-
 # Define variables
 # The directory where this script is located (i.e., external/log4plus)
 SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
@@ -42,8 +40,6 @@ REPO_DIR="${BUILD_ROOT_DIR}/log4cplus"
 VERSION="REL_2_0_8"
 # Build artifacts will be generated in a separate 'build' subdirectory
 BUILD_DIR="${BUILD_ROOT_DIR}/build"
-
-# --- MODIFIED SECTION END ---
 
 # Clone the repository if it doesn't already exist
 if [ ! -d "$REPO_DIR" ]; then
