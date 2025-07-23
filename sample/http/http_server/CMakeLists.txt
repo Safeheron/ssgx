@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.24)
 project(http_server "C" "CXX")
 
 find_package(ssgx REQUIRED)

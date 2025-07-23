@@ -15,24 +15,26 @@ using namespace ssgx::attestation_t;
 using namespace ssgx::utils_t;
 using namespace safeheron::hash;
 
-#define PRINT_REMOTE_ATTESTOR_STATUS(attestor)                                                                         \
+#define PRINT_REMOTE_ATTESTOR_STATUS(info, attestor)                                                                         \
     do {                                                                                                               \
         auto qv = (attestor).GetRawQvResult();                                                                         \
         auto err_code = (attestor).GetLastErrorCode();                                                                 \
         auto err_msg = (attestor).GetLastErrorMsg();                                                                   \
         if (qv.has_value()) {                                                                                          \
             ssgx::utils_t::Printf("[RemoteAttestor] %s:%d %s()\n"                                                      \
+                                  "  Info         : %s\n"                                                          \
                                   "  QvResult     : 0x%04X\n"                                                          \
                                   "  ErrorCode    : %d\n"                                                              \
                                   "  ErrorMessage : %s\n",                                                             \
-                                  __FILE__, __LINE__, __func__, static_cast<uint32_t>(*qv),                            \
+                                  __FILE__, __LINE__, __func__, info, static_cast<uint32_t>(*qv),                            \
                                   static_cast<int>(err_code), err_msg.c_str());                                        \
         } else {                                                                                                       \
             ssgx::utils_t::Printf("[RemoteAttestor] %s:%d %s()\n"                                                      \
+                                  "  Info         : %s\n"                                                          \
                                   "  QvResult     : (not available)\n"                                                 \
                                   "  ErrorCode    : %d\n"                                                              \
                                   "  ErrorMessage : %s\n",                                                             \
-                                  __FILE__, __LINE__, __func__, static_cast<int>(err_code), err_msg.c_str());          \
+                                  __FILE__, __LINE__, __func__, info, static_cast<int>(err_code), err_msg.c_str());          \
         }                                                                                                              \
     } while (0)
 
@@ -51,7 +53,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("", quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "") == SGX_SUCCESS &&
                 ret == -1);
@@ -66,7 +68,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport("1", quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);
@@ -82,7 +84,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "") == SGX_SUCCESS &&
                 ret == -1);
@@ -97,7 +99,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport("1", now, 3000, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);
@@ -113,7 +115,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(),
                                                       report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -146,7 +148,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("123213213321", quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -156,7 +158,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport(user_info, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -166,7 +168,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("", quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "123213213321") == SGX_SUCCESS &&
                 ret == -1);
@@ -189,7 +191,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(),
                                                       report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -205,7 +207,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("123213213321", now, 3000, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -215,7 +217,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport(user_info, now, 3000, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -225,7 +227,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "123213213321") == SGX_SUCCESS &&
                 ret == -1);
@@ -313,7 +315,7 @@ TEST(AttestationTestSuite, TestUserData) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("", quote_report_base64, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -323,7 +325,7 @@ TEST(AttestationTestSuite, TestUserData) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report_base64, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report_base64.c_str(),
                                                       (int)quote_report_base64.size(), report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -357,7 +359,7 @@ TEST(AttestationTestSuite, TestTimestamp) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_FALSE(attestor.VerifyReport("1", now, 1, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 1,
                                              "1") == SGX_SUCCESS &&
                 ret == -1);
@@ -370,7 +372,7 @@ TEST(AttestationTestSuite, TestTimestamp) {
         QvResult::ConfigAndSwHardeningNeeded
     });
     ASSERT_TRUE(attestor.VerifyReport("1", now, 300, quote_report, mr_enclave));
-    PRINT_REMOTE_ATTESTOR_STATUS(attestor);
+    PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 300,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);

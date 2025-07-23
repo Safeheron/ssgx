@@ -1,7 +1,7 @@
 set(app "${PROJECT_NAME}_app")
 
 ssgx_add_untrusted_executable(${app}
-		SRCS host.cpp
+		SRCS host.cpp ocall_imp.cpp
 		EDL Enclave.edl
 		EDL_SEARCH_PATHS ../ ${ssgx_EDL_DIRS}
 		UNTRUSTED_LIBS
@@ -13,5 +13,5 @@ ssgx_add_untrusted_executable(${app}
 			ssgx::ssgx_attestation_u
 )
 
-target_compile_features(${app} PRIVATE cxx_std_11)
+target_compile_features(${app} PRIVATE cxx_std_17)
 

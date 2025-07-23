@@ -11,7 +11,7 @@ ssgx_add_untrusted_library(${LIB_NAME} SHARED
 )
 add_library(${NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
-target_compile_features(${LIB_NAME} PRIVATE cxx_std_11)
+target_compile_features(${LIB_NAME} PRIVATE cxx_std_17)
 
 include_directories(
         ${SafeheronCryptoSuites_INCLUDE_DIR}
