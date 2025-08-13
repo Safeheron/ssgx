@@ -52,7 +52,7 @@ TARGET_TAG="78956e91f32d21843fb77be50ba060c196c718af"  # mpdecimal v4.0.0
 
 # Clone the repository if it doesn't exist, otherwise fetch latest changes.
 if [ ! -d "${REPO_DIR}" ]; then
-    echo "Cloning the mpdecimal repository into '${REPO_DIR}'..."
+    echo "Cloning the mpdecimal repository into '${REPO_DIR}' from '${REPO_URL}'"
     git clone "${REPO_URL}" "${REPO_DIR}"
 else
     echo "Repository directory already exists. Fetching latest changes..."

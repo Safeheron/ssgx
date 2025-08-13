@@ -31,6 +31,12 @@ Modify CMakePresets.json and add the following path to CMAKE_PREFIX_PATH:
 Modify CMakePresets.json and add the following path to CMAKE_PREFIX_PATH:
 "/opt/safeheron/ssgx/__untrusted_dependencies"
 
+### 2.4 At Runtime 
+
+```shell
+export LD_LIBRARY_PATH=/opt/safeheron/ssgx/__untrusted_dependencies/lib/:$LD_LIBRARY_PATH
+```
+
 ## 3 Notes
 
 - **Avoid Conflicts**: Do not install the same dependencies repeatedly under system paths in the untrusted environment (

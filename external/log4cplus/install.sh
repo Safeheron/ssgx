@@ -43,7 +43,7 @@ BUILD_DIR="${BUILD_ROOT_DIR}/build"
 
 # Clone the repository if it doesn't already exist
 if [ ! -d "$REPO_DIR" ]; then
-    echo "Cloning log4cplus repository into ${REPO_DIR}..."
+    echo "Cloning log4cplus repository into ${REPO_DIR} from ${REPO_URL}"
     git clone "$REPO_URL" "$REPO_DIR" || { echo "Failed to clone repository"; exit 1; }
 else
     echo "Repository already cloned. Pulling latest changes..."

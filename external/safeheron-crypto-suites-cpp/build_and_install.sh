@@ -50,8 +50,7 @@ UNTRUSTED_BUILD_DIR="${BUILD_ROOT_DIR}/build_untrusted"
 
 # Repository and version tags
 REPO_URL="https://github.com/Safeheron/safeheron-crypto-suites-cpp.git"
-SGX_VERSION_TAG="291613e138cbb9cb8e7b646ee4767d123a5198b9" # SGX-specific version(sgx_dev branch)
-UNTRUSTED_VERSION_TAG="3593a384c043175ca07376548e1b36c189a31035" # Untrusted version (main branch)
+VERSION_TAG="25a3acd41792a4b4089a36e97f8155d57de603f1" # main branch
 
 # Set install locations with defaults
 SGX_INSTALL_PREFIX="${trusted_install_prefix:-/opt/safeheron/ssgx}"
@@ -84,7 +83,17 @@ install_crypto_suites() {
 
     # Configure the project with CMake, pointing to the source directory
     echo "[STEP] Configuring with CMake..."
-    cmake "${REPO_DIR}" -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" || { echo "[ERROR] CMake configuration failed"; exit 1; }
+    if [[ "$BUILD_TYPE" == "SGX" ]]; then
+        cmake "${REPO_DIR}" -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" -DPLATFORM=SGX || {
+            echo "[ERROR] CMake configuration failed for SGX"
+            exit 1
+        }
+    else
+        cmake "${REPO_DIR}" -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" || {
+            echo "[ERROR] CMake configuration failed"
+            exit 1
+        }
+    fi
 
     # Build and install
     echo "[STEP] Building and installing..."
@@ -96,7 +105,7 @@ install_crypto_suites() {
 # --- 4. Main Execution Logic ---
 # Clone or update the repository ONCE at the beginning.
 if [ ! -d "$REPO_DIR" ]; then
-    echo "[INFO] Cloning Safeheron Crypto Suites repository..."
+    echo "[INFO] Cloning Crypto Suites repository into '${REPO_DIR}' from '${REPO_URL}'"
     git clone "$REPO_URL" "$REPO_DIR" || { echo "[ERROR] Failed to clone repository"; exit 1; }
 else
     echo "[INFO] Repository exists. Fetching latest updates..."
@@ -105,10 +114,10 @@ else
 fi
 
 # Install the SGX-specific version
-install_crypto_suites "${SGX_VERSION_TAG}" "${SGX_BUILD_DIR}" "${SGX_INSTALL_PREFIX}" "SGX"
+install_crypto_suites "${VERSION_TAG}" "${SGX_BUILD_DIR}" "${SGX_INSTALL_PREFIX}" "SGX"
 
 # Install the untrusted version
-install_crypto_suites "${UNTRUSTED_VERSION_TAG}" "${UNTRUSTED_BUILD_DIR}" "${UNTRUSTED_INSTALL_PREFIX}" "UNTRUSTED"
+install_crypto_suites "${VERSION_TAG}" "${UNTRUSTED_BUILD_DIR}" "${UNTRUSTED_INSTALL_PREFIX}" "UNTRUSTED"
 
 echo "--------------------------------------------------------"
 echo "[SUCCESS] All versions of Safeheron Crypto Suites have been installed."

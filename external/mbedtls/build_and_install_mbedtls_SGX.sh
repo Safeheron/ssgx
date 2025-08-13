@@ -49,7 +49,7 @@ TARGET_TAG="074b21e2bf206b05d114c7cdac0db0f36fd4d0bd"  # commit in branch 'maste
 
 # If the repository directory doesn't exist, clone it.
 if [ ! -d "${REPO_DIR}" ]; then
-    echo "Cloning the mbedtls-SGX repository into '${REPO_DIR}'..."
+    echo "Cloning the mbedtls-SGX repository into '${REPO_DIR}' from '${REPO_URL}'"
     git clone "${REPO_URL}" "${REPO_DIR}"
 # If it exists, fetch the latest changes instead of deleting.
 else

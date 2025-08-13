@@ -62,6 +62,10 @@ function(ssgx_add_trusted_library target)
     set(oneValueArgs EDL LDSCRIPT)
     set(multiValueArgs SRCS EDL_SEARCH_PATHS TRUSTED_LIBS)
     cmake_parse_arguments("SGX" "${optionArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    if(NOT SGX_SRCS)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp" "// dummy file")
+        set(SGX_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp")
+    endif()
     if(NOT "${SGX_LDSCRIPT}" STREQUAL "")
         get_filename_component(LDS_ABSPATH ${SGX_LDSCRIPT} ABSOLUTE)
         set(LDSCRIPT_FLAG "-Wl,--version-script=${LDS_ABSPATH}")
@@ -84,6 +88,9 @@ function(ssgx_add_trusted_library target)
             $<$<COMPILE_LANGUAGE:C>:${ENCLAVE_C_FLAGS}>
             $<$<COMPILE_LANGUAGE:CXX>:${ENCLAVE_CXX_FLAGS}>
     )
+    # For protobuf in sgx :https://github.com/intel/linux-sgx/blob/main/external/protobuf/sgx_protobuf.patch
+    target_compile_definitions(${target} PRIVATE PB_ENABLE_SGX)
+
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${ENCLAVE_INC_DIRS})
 
     # Collect direct dependencies
@@ -173,6 +180,10 @@ function(ssgx_add_enclave_library target)
     set(oneValueArgs EDL LDSCRIPT)
     set(multiValueArgs SRCS TRUSTED_LIBS EDL_SEARCH_PATHS)
     cmake_parse_arguments("SGX" "${optionArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    if(NOT SGX_SRCS)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp" "// dummy file")
+        set(SGX_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp")
+    endif()
     if("${SGX_EDL}" STREQUAL "")
         message(FATAL_ERROR "${target}: SGX enclave edl file is not provided!")
     endif()
@@ -192,6 +203,8 @@ function(ssgx_add_enclave_library target)
             $<$<COMPILE_LANGUAGE:C>:${ENCLAVE_C_FLAGS}>
             $<$<COMPILE_LANGUAGE:CXX>:${ENCLAVE_CXX_FLAGS}>
     )
+    # For protobuf in sgx :https://github.com/intel/linux-sgx/blob/main/external/protobuf/sgx_protobuf.patch
+    target_compile_definitions(${target} PRIVATE PB_ENABLE_SGX)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${ENCLAVE_INC_DIRS})
 
     # Collect direct dependencies

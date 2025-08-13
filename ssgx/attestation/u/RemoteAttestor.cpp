@@ -106,6 +106,15 @@ bool RemoteAttestor::VerifyReport(const uint8_t user_data[64], const std::string
         return false;
     }
 
+    // check verification collateral expiration status
+    // this value should be considered in your own attestation/verification policy
+    if (collateral_expiration_status != 0) {
+        error_code_ = ErrorCode::CollateralExpired;
+        error_msg_ =
+            "Verification completed, but collateral is out of date based on 'expiration_check_date' you provided.";
+        return false;
+    }
+
     // Verify report_body.report_data.d
     p_quote = (sgx_quote3_t*)quote_report.c_str();
     if (memcmp(p_quote->report_body.report_data.d, user_data, 64) != 0) {

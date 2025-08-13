@@ -58,7 +58,7 @@ UNTRUSTED_INSTALL_DIR="${untrusted_install_prefix:-/usr/local}"
 # --- 3. Git Clone/Fetch ---
 # Clone the repository if it doesn't exist, otherwise fetch latest changes.
 if [ ! -d "${REPO_DIR}" ]; then
-    echo "[INFO] Cloning the nlohmann/json repository into '${REPO_DIR}'..."
+    echo "[INFO] Cloning the nlohmann/json repository into '${REPO_DIR}' from '${NLOHMANN_REPO_URL}'"
     git clone "${NLOHMANN_REPO_URL}" "${REPO_DIR}"
 else
     echo "[INFO] Repository directory already exists. Fetching latest changes..."

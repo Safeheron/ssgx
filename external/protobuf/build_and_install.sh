@@ -52,7 +52,7 @@ INSTALL_PREFIX="${untrusted_install_prefix:-/usr/local}"
 
 # Clone the repository if it doesn't exist, otherwise fetch latest changes.
 if [ ! -d "${REPO_DIR}" ]; then
-    echo "Cloning protobuf repository into '${REPO_DIR}'..."
+    echo "Cloning protobuf repository into '${REPO_DIR}' from '${REPO_URL}'"
     git clone "${REPO_URL}" "${REPO_DIR}"
 else
     echo "Repository directory already exists. Fetching latest changes..."
