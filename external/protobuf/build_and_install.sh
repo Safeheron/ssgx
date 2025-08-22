@@ -81,7 +81,7 @@ echo "Configuring protobuf with CMake..."
 cmake "${REPO_DIR}/cmake" \
   -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" \
   -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-  -DBUILD_SHARED_LIBS=OFF \
+	-DCMAKE_BUILD_TYPE=Release \
   -Dprotobuf_BUILD_SHARED_LIBS=OFF \
   -Dprotobuf_BUILD_TESTS=OFF \
   -Dprotobuf_BUILD_EXAMPLES=OFF \

@@ -42,7 +42,7 @@ TEST(AttestationTestSuite, TestQuote) {
     int ret;
     RemoteAttestor attestor;
     std::string quote_report;
-    std::string mr_enclave;
+    std::string mrenclave_hex_in_report;
     ASSERT_FALSE(attestor.CreateReport("", quote_report));
     attestor.SetAcceptableResults({
         QvResult::Ok,
@@ -52,7 +52,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("", quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("", quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "") == SGX_SUCCESS &&
@@ -67,8 +67,10 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport("1", quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport("1", quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);
@@ -83,7 +85,7 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "") == SGX_SUCCESS &&
@@ -98,8 +100,10 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport("1", now, 3000, quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport("1", now, 3000, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);
@@ -114,8 +118,10 @@ TEST(AttestationTestSuite, TestQuote) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(),
                                                       report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -125,7 +131,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
     int ret;
     RemoteAttestor attestor;
     std::string quote_report;
-    std::string mr_enclave;
+    std::string mrenclave_hex_in_report;
     std::string user_info =
         "He was an old man who fished alone in a skiff in the Gulf Stream and he had gone eighty-four days now without "
         "taking a fish. In the first forty days a boy had been with him. But after forty days without a fish the boy’s "
@@ -147,7 +153,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("123213213321", quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("123213213321", quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
@@ -157,8 +163,10 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport(user_info, quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport(user_info, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -167,7 +175,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("", quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("", quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), 0, 0,
                                              "123213213321") == SGX_SUCCESS &&
@@ -190,8 +198,10 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(),
                                                       report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -206,7 +216,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("123213213321", now, 3000, quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("123213213321", now, 3000, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
@@ -216,8 +226,10 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport(user_info, now, 3000, quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport(user_info, now, 3000, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -226,7 +238,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("", now, 3000, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 3000,
                                              "123213213321") == SGX_SUCCESS &&
@@ -241,7 +253,7 @@ TEST(AttestationTestSuite, TestQuoteUserInfo) {
 
 TEST(AttestationTestSuite, TestUserData) {
     int ret;
-    std::string mr_enclave;
+    std::string mrenclave_hex_in_report;
     RemoteAttestor attestor;
     std::string quote_report_base64 =
         "AwACAAAAAAALABAAk5pyM/ecTKmUCg2zlX8GB/5uFiIpSJzDeqgvnzkPBNIAAAAADAwQD///AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
@@ -314,7 +326,7 @@ TEST(AttestationTestSuite, TestUserData) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("", quote_report_base64, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("", quote_report_base64, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     attestor.SetAcceptableResults({
         QvResult::Ok,
@@ -324,8 +336,10 @@ TEST(AttestationTestSuite, TestUserData) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report_base64, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport(report_data, quote_report_base64, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     ASSERT_TRUE(ocall_verify_quote_untrusted_original(&ret, (uint8_t*)quote_report_base64.c_str(),
                                                       (int)quote_report_base64.size(), report_data) == SGX_SUCCESS &&
                 ret == 0);
@@ -339,12 +353,12 @@ TEST(AttestationTestSuite, TestUserData) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport(report_data, quote_report_bytes, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport(report_data, quote_report_bytes, mrenclave_hex_in_report));
 }
 
 TEST(AttestationTestSuite, TestTimestamp) {
     int ret;
-    std::string mr_enclave;
+    std::string mrenclave_hex_in_report;
     RemoteAttestor attestor;
     std::string quote_report;
     int64_t now = DateTime::Now().GetTimestamp();
@@ -358,7 +372,7 @@ TEST(AttestationTestSuite, TestTimestamp) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_FALSE(attestor.VerifyReport("1", now, 1, quote_report, mr_enclave));
+    ASSERT_FALSE(attestor.VerifyReport("1", now, 1, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_FALSE", attestor);
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 1,
                                              "1") == SGX_SUCCESS &&
@@ -371,8 +385,10 @@ TEST(AttestationTestSuite, TestTimestamp) {
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    ASSERT_TRUE(attestor.VerifyReport("1", now, 300, quote_report, mr_enclave));
+    ASSERT_TRUE(attestor.VerifyReport("1", now, 300, quote_report, mrenclave_hex_in_report));
     PRINT_REMOTE_ATTESTOR_STATUS("ASSERT_TRUE", attestor);
+    ASSERT_EQ(mrenclave_hex_in_report.size(), 64);
+    Printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
     ASSERT_TRUE(ocall_verify_quote_untrusted(&ret, (uint8_t*)quote_report.c_str(), (int)quote_report.size(), now, 300,
                                              "1") == SGX_SUCCESS &&
                 ret == 0);

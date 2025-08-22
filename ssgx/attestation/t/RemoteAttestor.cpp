@@ -375,6 +375,7 @@ ErrorCode VerifyRawQuoteWithQvE(const std::string& quote_report, std::string& ou
     }
 
     out_qv_result = quote_verification_result;
+    out_mrenclave_hex = hex::EncodeToHex(p_quote->report_body.mr_enclave.m, 32);
     return ErrorCode::Success;
 }
 

@@ -44,7 +44,7 @@ extern "C" int ocall_verify_quote_untrusted(const uint8_t* quote, int quote_size
     int ret;
     RemoteAttestor attestor;
     std::string quote_report((char*)quote, quote_size);
-    std::string mr_enclave;
+    std::string mrenclave_hex_in_report;
     if (time_stamp == 0) {
         attestor.SetAcceptableResults({
             QvResult::Ok,
@@ -54,9 +54,12 @@ extern "C" int ocall_verify_quote_untrusted(const uint8_t* quote, int quote_size
             QvResult::SwHardeningNeeded,
             QvResult::ConfigAndSwHardeningNeeded
         });
-        bool pass = attestor.VerifyReport(user_info, quote_report, mr_enclave);
+        bool pass = attestor.VerifyReport(user_info, quote_report, mrenclave_hex_in_report) && mrenclave_hex_in_report.size() == 64;
         ret = pass ? 0 : -1;
         PRINT_REMOTE_ATTESTOR_STATUS(pass? "U_ASSERT_TRUE" : "U_ASSERT_FALSE", attestor);
+        if (pass) {
+            printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
+        }
         return ret;
     } else {
         attestor.SetAcceptableResults({
@@ -67,9 +70,12 @@ extern "C" int ocall_verify_quote_untrusted(const uint8_t* quote, int quote_size
             QvResult::SwHardeningNeeded,
             QvResult::ConfigAndSwHardeningNeeded
         });
-        bool pass = attestor.VerifyReport(user_info, time_stamp, validity_seconds, quote_report, mr_enclave);
+        bool pass = attestor.VerifyReport(user_info, time_stamp, validity_seconds, quote_report, mrenclave_hex_in_report) && mrenclave_hex_in_report.size() == 64;
         ret = pass ? 0 : -1;
         PRINT_REMOTE_ATTESTOR_STATUS(pass? "U_ASSERT_TRUE" : "U_ASSERT_FALSE", attestor);
+        if (pass) {
+            printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
+        }
         return ret;
     }
 }
@@ -77,7 +83,7 @@ extern "C" int ocall_verify_quote_untrusted(const uint8_t* quote, int quote_size
 extern "C" int ocall_verify_quote_untrusted_original(const uint8_t* quote, int quote_size, const uint8_t user_info[64]) {
     RemoteAttestor attestor;
     std::string quote_report((char*)quote, quote_size);
-    std::string mr_enclave;
+    std::string mrenclave_hex_in_report;
     attestor.SetAcceptableResults({
         QvResult::Ok,
         QvResult::ConfigNeeded,
@@ -86,8 +92,11 @@ extern "C" int ocall_verify_quote_untrusted_original(const uint8_t* quote, int q
         QvResult::SwHardeningNeeded,
         QvResult::ConfigAndSwHardeningNeeded
     });
-    bool pass = attestor.VerifyReport(user_info, quote_report, mr_enclave);
+    bool pass = attestor.VerifyReport(user_info, quote_report, mrenclave_hex_in_report);
     int ret = pass ? 0 : -1;
     PRINT_REMOTE_ATTESTOR_STATUS(pass? "U_ASSERT_TRUE" : "U_ASSERT_FALSE", attestor);
+    if (pass) {
+        printf("MRENCLAVE in report: %s\n", mrenclave_hex_in_report.c_str());
+    }
     return ret;
 }
