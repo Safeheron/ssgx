@@ -1,6 +1,7 @@
 set(LIB_NAME "ssgx_attestation_u")
 set(NAMESPACE "ssgx")
 
+find_package(OpenSSL REQUIRED)
 find_package(SafeheronCryptoSuites REQUIRED)
 
 ssgx_add_untrusted_library(${LIB_NAME} SHARED
@@ -10,7 +11,7 @@ ssgx_add_untrusted_library(${LIB_NAME} SHARED
 )
 add_library(${NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
-target_compile_features(${LIB_NAME} PRIVATE cxx_std_11)
+target_compile_features(${LIB_NAME} PRIVATE cxx_std_17)
 
 include_directories(
         ${SafeheronCryptoSuites_INCLUDE_DIR}
@@ -20,7 +21,7 @@ include_directories(
 target_link_libraries(${LIB_NAME} PUBLIC
         -lsgx_dcap_ql -lsgx_quote_ex -lsgx_dcap_quoteverify
         -lcrypto
-        ${SafeheronCryptoSuites_LIBRARY}
+        SafeheronCryptoSuites
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

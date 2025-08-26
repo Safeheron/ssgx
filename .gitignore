@@ -148,4 +148,5 @@ cmake-build-debug/
 release-sample-config
 release-ssgx-config
 release-test-config
+external/build_tree
 

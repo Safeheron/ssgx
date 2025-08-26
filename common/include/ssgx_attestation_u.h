@@ -1,7 +1,9 @@
 #ifndef SAFEHERON_SGX_UNTRUSTED_ATTESTATION_T_H_
 #define SAFEHERON_SGX_UNTRUSTED_ATTESTATION_T_H_
 
+#include <optional>
 #include <string>
+#include <unordered_set>
 
 namespace ssgx {
 /**
@@ -10,30 +12,7 @@ namespace ssgx {
  */
 namespace attestation_u {
 
-/**
- *  @brief Error codes definition
- *
- *  When an operation is failed, call GetLastErrorCode() to receive
- *  one of bellow error codes.
- *
- */
-enum class ErrorCode {
-    Success = 0,
-    InvalidParameter = 1,
-    InitializationFailed = 2,
-    GetTargetInfoFailed = 3,
-    GetQuoteSizeFailed = 4,
-    GetQuoteDataFailed = 5,
-    MallocFailed = 6,
-    SetLoadPolicyFailed = 7,
-    GetSupplementSizeFailed = 8,
-    SupplementSizeIsWrong = 9,
-    VerifyQuoteFailed = 10,
-    VerifyUserDataFailed = 11,
-    VerifyTimeStampFailed = 12,
-
-    Unknown = 999
-};
+#include "ssgx_attestation_share.h"
 
 /**
  *  @brief The class for Intel DCAP remote attestation
@@ -48,36 +27,152 @@ class RemoteAttestor {
     }
 
   public:
-    /**
-     * @brief Verify a remote attestation report within a Untrusted Execution Environment
-     * @param[in] user_data User-defined data utilized in the generation of a remote attestation report.
-     * @param[in] report remote attestation report
-     * @param[out] enclave_id MRENCLAVE in the remote attestation report.
-     * @return Return true if successful; otherwise, return false
+        /**
+     * @brief Set the list of SGX Quote Verification results that are considered acceptable.
+     *
+     * Intel SGX Quote Verification Library (QVL) produces result codes such as `QvResult::Ok`,
+     * `QvResult::ConfigNeeded`, or `QvResult::OutOfDate` after quote verification. With the upgrade
+     * to PCS v4 and QVL v4, it has become increasingly rare to receive the ideal result `QvResult::Ok`,
+     * even on properly configured platforms.
+     *
+     * This function allows the application to explicitly define which of those QvResult codes are acceptable
+     * within its own trust model.
+     *
+     * If the quote result is included in this list, and all other validation steps pass (e.g. user data,
+     * timestamp), the verification will be considered successful (i.e. `ErrorCode::Success`).
+     *
+     * If the quote result is not included, the verification will be rejected regardless of other conditions.
+     *
+     *
+     * @param accepted_results A list of SGX QVL quote results (`QvResult` enum) that the application deems acceptable.
+     *                         Internal error codes (e.g., invalid parameters) must not be passed here.
+     *
+     * @note If this function is not called, the default behavior is to only accept `QvResult::Ok`
+     *       (i.e., SGX_QL_QV_RESULT_OK). This may result in failed verification on otherwise secure platforms,
+     *       especially when using Intel PCS v4.
+     *
+     * @note According to Intel SGX QVL specification, only the following `SGX_QL_QV_RESULT_*` values
+     *       may be considered *acceptable* under a user-defined trust policy:
+     *
+     *       -  QvResult::Ok                          ------  SGX_QL_QV_RESULT_OK
+     *       -  QvResult::ConfigNeeded                ------  SGX_QL_QV_RESULT_CONFIG_NEEDED
+     *       -  QvResult::OutOfDate                   ------  SGX_QL_QV_RESULT_OUT_OF_DATE
+     *       -  QvResult::OutOfDateConfigNeeded       ------  SGX_QL_QV_RESULT_OUT_OF_DATE_CONFIG_NEEDED
+     *       -  QvResult::SwHardeningNeeded           ------  SGX_QL_QV_RESULT_SW_HARDENING_NEEDED
+     *       -  QvResult::ConfigAndSwHardeningNeeded  ------  SGX_QL_QV_RESULT_CONFIG_AND_SW_HARDENING_NEEDED
+     *
+     *       These results are classified by Intel's Quote Verification Library (QVL) as "non-terminal",
+     *       meaning the quote is structurally valid and does not represent a definitive security failure.
+     *       However, they may indicate that the platform requires additional configuration,
+     *       software hardening, or security updates.
+     *
+     *       Whether to treat any of these results as acceptable depends entirely on the application’s
+     *       trust model and security policy. This function allows the caller to explicitly define
+     *       which of them should be accepted.
+     *
+     *       All other SGX_QL_QV_RESULT_* values—such as `INVALID_SIGNATURE`, `REVOKED`, or `UNSPECIFIED`—
+     *       indicate unrecoverable errors and must not be accepted under any trust model.
+     *
+     * @warning It is strongly recommended to call this function to explicitly accept "non-ideal but trusted" states
+     *          such as `ConfigNeeded` or `OutOfDate`, depending on the deployment scenario.
      */
-    bool VerifyReport(const uint8_t user_data[64], const std::string& report, std::string& enclave_id);
+    void SetAcceptableResults(std::initializer_list<QvResult> accepted_results);
 
     /**
-     * @brief Verify a remote attestation report within a Untrusted Execution Environment
-     * @param[in] user_info User-defined data utilized in the generation of a remote attestation report.
-     * @param[in] report remote attestation report
-     * @param[out] enclave_id MRENCLAVE in the remote attestation report.
-     * @return Return true if successful; otherwise, return false
+     * @brief Verify a remote attestation report within a Trusted Execution Environment.
+     *
+     * This function verifies a remote attestation report generated with fixed-size user data.
+     * If quote verification passes according to the accepted QvResult policy (see SetAcceptableResults),
+     * and internal validations (user data, timestamp) succeed, the verification is considered successful.
+     *
+     * The verified MRENCLAVE value will be returned via `mrenclave_hex`.
+     *
+     * @warning The `mrenclave_hex` is extracted as-is from the quote. This function DOES NOT validate whether
+     *          the mrenclave_hex matches any known or trusted value. You MUST validate it against an expected
+     *          allowlist or policy externally to ensure the remote enclave is trusted.
+     *
+     * @param[in] user_data Fixed 64-byte user data used during report creation.
+     * @param[in] report Remote attestation report generated by a trusted enclave.
+     * @param[out] mrenclave_hex  Hex-encoded MRENCLAVE extracted from the report.
+     * @return Return true if the report is valid and trusted under the defined policy.
+     *
+     * Example:
+     * @code
+     * std::string mrenclave_hex;
+     * if (attestor.VerifyReport(user_data, report, mrenclave_hex)) {
+     *     static const std::string expected_mrenclave_hex = "<trusted_mrenclave>";
+     *     if (mrenclave_hex == expected_mrenclave_hex) {
+     *         // Enclave is trusted
+     *     } else {
+     *         // Identity mismatch — do not trust
+     *     }
+     * }
+     * @endcode
      */
-    bool VerifyReport(const std::string& user_info, const std::string& report, std::string& enclave_id);
+    bool VerifyReport(const uint8_t user_data[64], const std::string& report, std::string& mrenclave_hex);
 
     /**
-     * @brief Verify a remote attestation report within a Untrusted Execution Environment
-     * @param[in] user_info User-defined data utilized in the generation of a remote attestation report.
-     * @param[in] timestamp Timestamp used in the generation of a remote attestation report.
-     * @param[in] validity_seconds If timestamp + validity_seconds < current_timestamp, the remote attestation report
-     * and User-defined data are considered expired.
-     * @param[in] report remote attestation report
-     * @param[out] enclave_id MRENCLAVE in the remote attestation report.
-     * @return Return true if successful; otherwise, return false
+     * @brief Verify a remote attestation report within a Trusted Execution Environment.
+     *
+     * The function verifies a report generated with arbitrary-length user data.
+     * It checks quote validity and user data consistency.
+     *
+     * @warning The `mrenclave_hex` is returned directly from the quote.
+     *          This function does NOT validate that the enclave matches any known trusted identity.
+     *          You MUST compare `mrenclave_hex` manually against your trusted policy.
+     *
+     * @param[in] user_info Arbitrary user data provided during report creation.
+     * @param[in] report Remote attestation report.
+     * @param[out] mrenclave_hex  Hex-encoded MRENCLAVE extracted from the report.
+     * @return Return true if the report passes all validations and quote result is accepted.
+     *
+     * Example:
+     * @code
+     * std::string mrenclave_hex;
+     * if (attestor.VerifyReport(user_info, report, mrenclave_hex)) {
+     *     static const std::string expected_mrenclave_hex = "<trusted_mrenclave>";
+     *     if (mrenclave_hex == "<expected_mrenclave_hex>") {
+     *         // Trusted enclave
+     *     } else {
+     *         // Untrusted identity
+     *     }
+     * }
+     * @endcode
+     */
+    bool VerifyReport(const std::string& user_info, const std::string& report, std::string& mrenclave_hex);
+
+    /**
+     * @brief Verify a remote attestation report that includes timestamp-based freshness validation.
+     *
+     * This version of VerifyReport includes temporal checks: if the report's timestamp is older
+     * than the allowed validity window, the verification fails.
+     *
+     * @warning This function returns `mrenclave_hex` (MRENCLAVE) from the report as-is.
+     *          It does NOT check that the enclave matches any trusted value. You must perform this
+     *          verification manually (e.g., against an allowlist or expected hash).
+     *
+     * @param[in] user_info User-defined data used during report generation.
+     * @param[in] timestamp Timestamp used to bind the report to a specific moment in time.
+     * @param[in] validity_seconds Allowed validity window in seconds.
+     * @param[in] report Remote attestation report.
+     * @param[out] mrenclave_hex  Hex-encoded MRENCLAVE extracted from the report.
+     * @return Return true if all checks succeed and quote result is within accepted policy.
+     *
+     * Example:
+     * @code
+     * std::string mrenclave_hex;
+     * if (attestor.VerifyReport(user_info, timestamp, validity_seconds, report, mrenclave_hex)) {
+     *     static const std::string expected_mrenclave_hex = "<trusted_mrenclave>";
+     *     if (mrenclave_hex == "<expected_mrenclave_hex>") {
+     *         // Valid and trusted
+     *     } else {
+     *         // MRENCLAVE mismatch
+     *     }
+     * }
+     * @endcode
      */
     bool VerifyReport(const std::string& user_info, uint64_t timestamp, uint64_t validity_seconds,
-                      const std::string& report, std::string& enclave_id);
+                      const std::string& report, std::string& mrenclave_hex);
 
     /**
      * @brief Get the error code
@@ -95,9 +190,30 @@ class RemoteAttestor {
         return error_msg_;
     };
 
+    /**
+     * @brief Get the raw SGX Quote Verification result from the last verification.
+     *
+     * This returns the numeric result code produced by the Intel SGX Quote Verification Library (QVL),
+     * such as `SGX_QL_QV_RESULT_OK`, `SGX_QL_QV_RESULT_OUT_OF_DATE`, or `SGX_QL_QV_RESULT_CONFIG_NEEDED`.
+     *
+     * The value corresponds directly to the `sgx_ql_qv_result_t` enum defined in the Intel SGX DCAP library.
+     * These result codes are declared in:
+     * https://github.com/intel/SGXDataCenterAttestationPrimitives/blob/main/QuoteVerification/QvE/Include/sgx_qve_header.h
+     *
+     * @return An SGX QVL result code (`sgx_ql_qv_result_t`) as a `uint32_t`, or `std::nullopt` if not available.
+     *
+     * @note This is a low-level result intended for diagnostics or logging. For policy-level decisions,
+     *       use `VerifyReport()` in conjunction with `SetAcceptableResults()` to determine trust.
+     */
+    [[nodiscard]] std::optional<uint32_t> GetRawQvResult() const {
+        return qv_result_;
+    }
+
   private:
     ErrorCode error_code_;
     std::string error_msg_;
+    std::optional<uint32_t> qv_result_;
+    std::unordered_set<uint32_t> accepted_qv_results_; // Accept only SGX_QL_QV_RESULT_OK by default
 };
 
 } // namespace attestation_u

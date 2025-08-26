@@ -3,8 +3,7 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Parameter Parsing for this Sub-script ---
-# Initialize local variables to store parsed values.
+# --- 1. Parameter Parsing ---
 trusted_install_prefix=""
 untrusted_install_prefix=""
 
@@ -34,56 +33,85 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Configuration variables
-TOP_DIR="$(cd "$(dirname "$(realpath "${0}")")" && pwd)"
-NLOHMANN_REPO_URL="https://github.com/Safeheron/json.git"  # URL of the nlohmann/json repository
-NLOHMANN_VERSION="v3.11.2"  # Target tag to apply the patch
-PATCH_FILE="${TOP_DIR}/sgx_json.patch"  # Path to the patch file
-CLONE_DIR="${TOP_DIR}/nlohmann_json"  # Absolute path for the cloned repository
-INSTALL_PREFIX="${trusted_install_prefix:-/opt/safeheron/ssgx}"  # Target installation directory, default to /opt/safeheron/ssgx
-INSTALL_DIR="${INSTALL_PREFIX}/include"  # Target installation directory
+# --- 2. Configuration and Directory Setup ---
+# Standardized directory structure
+SCRIPT_DIR="$(cd "$(dirname "$(realpath "$0")")" && pwd)"
+BUILD_ROOT_DIR="$(dirname "$SCRIPT_DIR")/build_tree/nlohmann"
 
-# Clone the nlohmann/json repository
-if [ -d "${CLONE_DIR}" ]; then
-    echo "Repository directory already exists."
-    echo "Removing directory '${CLONE_DIR}'..."
-    rm -rf "${CLONE_DIR}"
+# Create the root build directory if it doesn't already exist
+echo "[INFO] Ensuring build root directory exists at: ${BUILD_ROOT_DIR}"
+mkdir -p "$BUILD_ROOT_DIR"
+
+# Source code and build directories
+REPO_DIR="${BUILD_ROOT_DIR}/nlohmann_json"
+UNTRUSTED_BUILD_DIR="${BUILD_ROOT_DIR}/untrusted_build"
+PATCH_FILE="${SCRIPT_DIR}/sgx_json.patch"
+
+# Repository and version tags
+NLOHMANN_REPO_URL="https://github.com/Safeheron/json.git"
+NLOHMANN_VERSION="v3.11.2"
+
+# Set install locations with defaults
+TRUSTED_INSTALL_DIR="${trusted_install_prefix:-/opt/safeheron/ssgx}/include"
+UNTRUSTED_INSTALL_DIR="${untrusted_install_prefix:-/usr/local}"
+
+# --- 3. Git Clone/Fetch ---
+# Clone the repository if it doesn't exist, otherwise fetch latest changes.
+if [ ! -d "${REPO_DIR}" ]; then
+    echo "[INFO] Cloning the nlohmann/json repository into '${REPO_DIR}' from '${NLOHMANN_REPO_URL}'"
+    git clone "${NLOHMANN_REPO_URL}" "${REPO_DIR}"
+else
+    echo "[INFO] Repository directory already exists. Fetching latest changes..."
+    cd "${REPO_DIR}"
+    git fetch origin
 fi
-echo "Cloning the nlohmann/json repository..."
-git clone "${NLOHMANN_REPO_URL}" "${CLONE_DIR}"
 
 # Navigate to the repository directory
-cd "${CLONE_DIR}"
+cd "${REPO_DIR}"
 
+# --- 4. Install Unpatched (Untrusted) Version ---
+echo "--------------------------------------------------------"
+echo "[INFO] Starting install for UNTRUSTED nlohmann/json"
 # Checkout the specific tag
-echo "Checking out version ${NLOHMANN_VERSION}..."
+echo "[STEP] Checking out version ${NLOHMANN_VERSION}..."
 git checkout "${NLOHMANN_VERSION}"
 
-# Install the unpatched library to the system default directory
-UNTRUSTED_INSTALL_DIR="${untrusted_install_prefix:-/usr/local}/include"  # Target installation directory, default to /opt/safeheron/ssgx
+# Reset to a clean state to ensure we are installing the original, unpatched version.
+echo "[STEP] Resetting repository to a clean state before untrusted build..."
+git reset --hard HEAD
 
-echo "Installing unpatched library headers to ${UNTRUSTED_INSTALL_DIR}..."
-sudo mkdir -p "${UNTRUSTED_INSTALL_DIR}"
-sudo cp -r "${CLONE_DIR}/include/nlohmann" "${UNTRUSTED_INSTALL_DIR}/"
+echo "[STEP] Building and installing unpatched library to ${UNTRUSTED_INSTALL_DIR}..."
+# Configure using an out-of-source build directory
+cmake -S "${REPO_DIR}" -B "${UNTRUSTED_BUILD_DIR}" \
+      -DCMAKE_INSTALL_PREFIX="${UNTRUSTED_INSTALL_DIR}" \
+      -DJSON_BuildTests=OFF \
+      -DJSON_BuildExamples=OFF
 
-# Apply the patch file
-if [ -f "${PATCH_FILE}" ]; then
-    echo "Applying patch: ${PATCH_FILE}..."
-    git apply "${PATCH_FILE}"
-else
-    echo "Error: Patch file '${PATCH_FILE}' not found."
+# Build and install the untrusted version
+cmake --build "${UNTRUSTED_BUILD_DIR}"
+sudo cmake --install "${UNTRUSTED_BUILD_DIR}"
+echo "[SUCCESS] Untrusted version installed."
+
+# --- 5. Apply Patch and Install Patched (Trusted) Version ---
+echo "--------------------------------------------------------"
+echo "[INFO] Starting install for TRUSTED nlohmann/json"
+# Apply the patch file. The previous reset ensures this step is safe to re-run.
+if [ ! -f "${PATCH_FILE}" ]; then
+    echo "[ERROR] Patch file '${PATCH_FILE}' not found."
     exit 1
 fi
+echo "[STEP] Applying patch: ${PATCH_FILE}..."
+git apply "${PATCH_FILE}"
 
-# Check if the target directory exists, create it if not
-if [ ! -d "${INSTALL_DIR}" ]; then
-    echo "Creating the installation directory: ${INSTALL_DIR}..."
-    sudo mkdir -p "${INSTALL_DIR}"
-fi
+# Install patched header files to the target directory using simple copy
+echo "[STEP] Installing patched header files to ${TRUSTED_INSTALL_DIR}..."
+sudo mkdir -p "${TRUSTED_INSTALL_DIR}"
+sudo cp -r "${REPO_DIR}/include/nlohmann" "${TRUSTED_INSTALL_DIR}/"
+echo "[SUCCESS] Trusted version installed."
 
-# Install header files to the target directory
-echo "Installing header files to ${INSTALL_DIR}..."
-sudo cp -r "${CLONE_DIR}/include/nlohmann" "${INSTALL_DIR}/"
+# --- 6. Completion ---
+echo "--------------------------------------------------------"
+echo "[SUCCESS] nlohmann/json untrusted and trusted headers installed."
 
-# Done
-echo "nlohmann/json headers installed successfully to ${INSTALL_DIR}."
+# Return to the original script directory for good practice
+cd "$SCRIPT_DIR" || exit 1

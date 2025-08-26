@@ -2,6 +2,7 @@ set(LIB_NAME "ssgx_config_u")
 set(NAMESPACE "ssgx")
 
 find_package(log4cplus CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 set(LIB_SRC_FILES ocall_config_u.cpp
         ssgx_config_u.cpp)
@@ -19,8 +20,9 @@ target_include_directories(${LIB_NAME} PRIVATE
         ${CMAKE_SOURCE_DIR}/common/include/
 )
 
-target_link_libraries(${LIB_NAME}
+target_link_libraries(${LIB_NAME} PRIVATE
         ${LOG4CPLUS_LIBRARIES}
+        nlohmann_json::nlohmann_json
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

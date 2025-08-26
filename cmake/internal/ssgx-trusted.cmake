@@ -62,6 +62,10 @@ function(ssgx_add_trusted_library target)
     set(oneValueArgs EDL LDSCRIPT)
     set(multiValueArgs SRCS EDL_SEARCH_PATHS TRUSTED_LIBS)
     cmake_parse_arguments("SGX" "${optionArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    if(NOT SGX_SRCS)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp" "// dummy file")
+        set(SGX_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp")
+    endif()
     if(NOT "${SGX_LDSCRIPT}" STREQUAL "")
         get_filename_component(LDS_ABSPATH ${SGX_LDSCRIPT} ABSOLUTE)
         set(LDSCRIPT_FLAG "-Wl,--version-script=${LDS_ABSPATH}")
@@ -84,6 +88,9 @@ function(ssgx_add_trusted_library target)
             $<$<COMPILE_LANGUAGE:C>:${ENCLAVE_C_FLAGS}>
             $<$<COMPILE_LANGUAGE:CXX>:${ENCLAVE_CXX_FLAGS}>
     )
+    # For protobuf in sgx :https://github.com/intel/linux-sgx/blob/main/external/protobuf/sgx_protobuf.patch
+    target_compile_definitions(${target} PRIVATE PB_ENABLE_SGX)
+
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${ENCLAVE_INC_DIRS})
 
     # Collect direct dependencies
@@ -173,6 +180,10 @@ function(ssgx_add_enclave_library target)
     set(oneValueArgs EDL LDSCRIPT)
     set(multiValueArgs SRCS TRUSTED_LIBS EDL_SEARCH_PATHS)
     cmake_parse_arguments("SGX" "${optionArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+    if(NOT SGX_SRCS)
+        file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp" "// dummy file")
+        set(SGX_SRCS "${CMAKE_CURRENT_BINARY_DIR}/${target}_dummy.cpp")
+    endif()
     if("${SGX_EDL}" STREQUAL "")
         message(FATAL_ERROR "${target}: SGX enclave edl file is not provided!")
     endif()
@@ -192,6 +203,8 @@ function(ssgx_add_enclave_library target)
             $<$<COMPILE_LANGUAGE:C>:${ENCLAVE_C_FLAGS}>
             $<$<COMPILE_LANGUAGE:CXX>:${ENCLAVE_CXX_FLAGS}>
     )
+    # For protobuf in sgx :https://github.com/intel/linux-sgx/blob/main/external/protobuf/sgx_protobuf.patch
+    target_compile_definitions(${target} PRIVATE PB_ENABLE_SGX)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${ENCLAVE_INC_DIRS})
 
     # Collect direct dependencies
@@ -211,72 +224,60 @@ function(ssgx_add_enclave_library target)
     list(REMOVE_DUPLICATES COMPLETE_DEPS)  # Ensure uniqueness
     message(STATUS "COMPLETE_DEPS = ${COMPLETE_DEPS}")
 
+    # Set general linker options.
+    # These are options that apply to the target as a whole, separate from the library list.
+    target_link_options(${target} PRIVATE
+            -nostdlib
+            -nodefaultlibs
+            -nostartfiles
+            -Wl,--no-undefined
+            -Wl,-Bstatic
+            -Wl,-Bsymbolic
+            -Wl,-pie,-eenclave_entry
+            -Wl,--export-dynamic
+            -Wl,--defsym,__ImageBase=0
+            ${LDSCRIPT_FLAG}
+    )
+
+    # Prepare a single list of all libraries that need to be in the link group.
+    # This includes system libraries (as -l flags) and CMake targets from your project.
+    set(LIBS_IN_GROUP)
+    list(APPEND LIBS_IN_GROUP
+            -lsgx_dcap_tvl
+            -lsgx_tstdc
+            -lsgx_pthread
+            -lsgx_tcxx
+            -lsgx_tkey_exchange
+            -lsgx_tcrypto
+            -lsgx_tprotected_fs
+            -lsgx_protobuf
+            -l${SGX_TSVC_LIB}
+            ${COMPLETE_DEPS}  # Add all direct and transitive CMake target dependencies
+    )
+
+    # Conditionally add SGXSSL-related libraries to the group
     if(${SGX_USE_SGXSSL})
         target_include_directories(${target} PRIVATE ${SSGX_ENV__SGXSSL_INCLUDE_PATH})
-        target_link_options(${target} PRIVATE
-                -nostdlib
-                -nodefaultlibs
-                -nostartfiles
-                -Wl,--no-undefined
-                -Wl,-Bstatic
-                -Wl,-Bsymbolic
-                -Wl,-pie,-eenclave_entry
-                -Wl,--export-dynamic
-                -Wl,--defsym,__ImageBase=0
-                ${LDSCRIPT_FLAG}
-        )
-        target_link_libraries(${target} PUBLIC
-                -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
-                -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
-                -Wl,--whole-archive
-                    -l${SGX_TRTS_LIB}
-                    -lsgx_tsgxssl
-                -Wl,--no-whole-archive
-                -Wl,--start-group
-                    -lsgx_dcap_tvl
-                    -lsgx_tsgxssl_crypto
-                    -lsgx_tstdc
-                    -lsgx_pthread
-                    -lsgx_tcxx
-                    -lsgx_tkey_exchange
-                    -lsgx_tcrypto
-                    -lsgx_tprotected_fs
-                    -lsgx_protobuf
-                    -l${SGX_TSVC_LIB}
-                    ${COMPLETE_DEPS}
-                -Wl,--end-group
-        )
-    else()
-        target_link_options(${target} PRIVATE
-                -nostdlib
-                -nodefaultlibs
-                -nostartfiles
-                -Wl,--no-undefined
-                -Wl,-Bstatic
-                -Wl,-Bsymbolic
-                -Wl,-pie,-eenclave_entry
-                -Wl,--export-dynamic
-                -Wl,--defsym,__ImageBase=0
-                ${LDSCRIPT_FLAG}
-        )
-        target_link_libraries(${target} PUBLIC
-                -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
-                -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
-                -Wl,--whole-archive
-                    -l${SGX_TRTS_LIB}
-                -Wl,--no-whole-archive
-                -Wl,--start-group
-                    -lsgx_dcap_tvl
-                    -lsgx_tstdc
-                    -lsgx_pthread
-                    -lsgx_tcxx
-                    -lsgx_tkey_exchange
-                    -lsgx_tcrypto
-                    -lsgx_tprotected_fs
-                    -lsgx_protobuf
-                    -l${SGX_TSVC_LIB}
-                    ${COMPLETE_DEPS}
-                -Wl,--end-group
-        )
+        list(APPEND LIBS_IN_GROUP -lsgx_tsgxssl_crypto)
     endif()
+
+    # Perform the final linking with a single, clear command.
+    target_link_libraries(${target} PUBLIC
+            # Library search paths must still be provided for the linker to find '-l' libraries.
+            -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
+            -L${SSGX_ENV__SGXSSL_LIBRARY_DIR}
+
+            # Handle libraries that need to be entirely included.
+            -Wl,--whole-archive
+            -l${SGX_TRTS_LIB}
+            # Use a generator expression to conditionally link a library.
+            $<$<BOOL:${SGX_USE_SGXSSL}>:-lsgx_tsgxssl>
+            -Wl,--no-whole-archive
+
+            # THE CORE SOLUTION:
+            # Use the LINK_GROUP generator expression with our custom 'ssgx_wrap' feature.
+            # CMake will correctly resolve all targets in LIBS_IN_GROUP to their file paths
+            # and place them, along with the -l flags, inside the --start-group block.
+            "$<LINK_GROUP:ssgx_wrap,${LIBS_IN_GROUP}>"
+    )
 endfunction()

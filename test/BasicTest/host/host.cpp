@@ -50,26 +50,3 @@ _exit:
 
     return ret;
 }
-
-int ocall_symlink_file(const char* path, const char* link_path) {
-    return symlink(path, link_path) == 0 ? 0 : -1;
-}
-
-int ocall_verify_quote_untrusted(const uint8_t* quote, int quote_size, uint64_t time_stamp, uint64_t validity_seconds,
-                                 const char* user_info) {
-    RemoteAttestor attestor;
-    std::string quote_report((char*)quote, quote_size);
-    std::string mr_enclave;
-    if (time_stamp == 0) {
-        return attestor.VerifyReport(user_info, quote_report, mr_enclave) ? 0 : -1;
-    } else {
-        return attestor.VerifyReport(user_info, time_stamp, validity_seconds, quote_report, mr_enclave) ? 0 : -1;
-    }
-}
-
-int ocall_verify_quote_untrusted_original(const uint8_t* quote, int quote_size, const uint8_t user_info[64]) {
-    RemoteAttestor attestor;
-    std::string quote_report((char*)quote, quote_size);
-    std::string mr_enclave;
-    return attestor.VerifyReport(user_info, quote_report, mr_enclave) ? 0 : -1;
-}

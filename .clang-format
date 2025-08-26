@@ -11,6 +11,9 @@ UseTab: Never
 AllowShortFunctionsOnASingleLine: None
 AlwaysBreakTemplateDeclarations: Yes
 
+AllowShortBlocksOnASingleLine: Always
+AllowShortIfStatementsOnASingleLine: WithoutElse
+
 # C++ Core Guidelines recommend smart pointers and modern STL
 IncludeBlocks: Regroup
 SortIncludes: CaseInsensitive
