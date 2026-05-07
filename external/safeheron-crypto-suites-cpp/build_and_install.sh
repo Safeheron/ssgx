@@ -50,7 +50,7 @@ UNTRUSTED_BUILD_DIR="${BUILD_ROOT_DIR}/build_untrusted"
 
 # Repository and version tags
 REPO_URL="https://github.com/Safeheron/safeheron-crypto-suites-cpp.git"
-VERSION_TAG="36f0a0ff352e9f23080bf1de448581deb3d61485" # main branch
+VERSION_TAG="c05c0907ac6875ce4e1f5bbb4fcababcca5c71cf" # main branch
 
 # Set install locations with defaults
 SGX_INSTALL_PREFIX="${trusted_install_prefix:-/opt/safeheron/ssgx}"
