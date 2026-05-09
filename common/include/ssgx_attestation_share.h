@@ -132,7 +132,10 @@ enum class QvResult : uint32_t {
 
     /// Corresponds to SGX_QL_QV_RESULT_TD_RELAUNCH_ADVISED_CONFIG_NEEDED.
     /// For TDX: Same as above, and additional platform configuration is also required.
+    /// Available since SGX SDK 2.24.
+#if SGXSDK_VERSION_MAJOR > 2 || (SGXSDK_VERSION_MAJOR == 2 && SGXSDK_VERSION_MINOR >= 24)
     TDRelaunchAdvisedConfigNeeded = 0xA00A,
+#endif
 
     /// Corresponds to SGX_QL_QV_RESULT_MAX.
     /// Maximum defined SGX QVL result value.

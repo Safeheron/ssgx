@@ -49,8 +49,10 @@ static inline sgx_ql_qv_result_t FromQvResult(QvResult val) {
         return SGX_QL_QV_RESULT_CONFIG_AND_SW_HARDENING_NEEDED;
     case QvResult::TDRelaunchAdvised:
         return SGX_QL_QV_RESULT_TD_RELAUNCH_ADVISED;
+#if SGXSDK_VERSION_MAJOR > 2 || (SGXSDK_VERSION_MAJOR == 2 && SGXSDK_VERSION_MINOR >= 24)
     case QvResult::TDRelaunchAdvisedConfigNeeded:
         return SGX_QL_QV_RESULT_TD_RELAUNCH_ADVISED_CONFIG_NEEDED;
+#endif
     }
     throw std::runtime_error("Invalid QvResult value");
 }

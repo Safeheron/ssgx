@@ -82,6 +82,8 @@ ssgx_check_variable_path(SSGX_ENV__SGXSDK_INCLUDE_DIR "SGX include directory")
 ssgx_check_path("${SSGX_ENV__SGXSDK_LIBRARY_DIR}/libsgx_urts.so" "SGX SDK library")
 ssgx_check_path("${SSGX_ENV__SGXSDK_INCLUDE_DIR}/sgx.h" "SGX SDK header file")
 
+include("${CMAKE_CURRENT_LIST_DIR}/ssgx-sdk-version.cmake")
+
 # ============================================================================================
 # Section 3: Include directories for SGX SDK  (tlibc, libcxx, protobuf)
 # - SSGX_ENV__SGXSDK_INCLUDE_DIRS
