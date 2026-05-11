@@ -23,7 +23,7 @@ enclave {
 
         void ssgx_ocall_calloc( size_t num, size_t size, [out] uint8_t **pptr_outside_enclave );
 
-        void ssgx_ocall_free( [in] uint8_t* ptr_outside_enclave );
+        void ssgx_ocall_free( [user_check] uint8_t* ptr_outside_enclave );
 
         void ssgx_ocall_sleep(uint32_t seconds);
     };

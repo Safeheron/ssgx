@@ -27,10 +27,10 @@ extern "C" int ssgx_ocall_get_qe_target_info(sgx_target_info_t* p_qe3_target) {
         return static_cast<int>(ErrorCode::InvalidParameter);
     }
 
-    // Check AESM server, if it is available, set is_out_of_proc = true
+    // Out-of-process mode (AESM service via socket) is not supported.
     const char *out_of_proc = getenv(SGX_AESM_ADDR);
-    if (!out_of_proc) {
-        is_out_of_proc = true;
+    if (out_of_proc) {
+        return static_cast<int>(ErrorCode::ModeNotSupported);
     }
 
     // Initialize QE libraries,
