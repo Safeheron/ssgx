@@ -120,7 +120,7 @@ static SGX_FILE* OpenFileForAppend(const char* file_name, const char* meta_file_
             throw FileSystemException("Invalid metadata file, key_policy and legacy mode are not consistent");
         }
         if (key_request.isv_svn != report->body.isv_svn ||
-            memcmp(&key_request.cpu_svn, &report->body.cpu_svn, sizeof(sgx_isv_svn_t) ) != 0) {
+            memcmp(&key_request.cpu_svn, &report->body.cpu_svn, sizeof(sgx_cpu_svn_t)) != 0) {
             throw FileSystemException("A file with the same name already exists and was created by another enclave.");
         }
     }
