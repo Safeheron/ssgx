@@ -1,5 +1,6 @@
 #include "ssgx_config_t.h"
 
+#include <cstring>
 #include <string>
 
 #include "nlohmann/json.hpp"
@@ -9,11 +10,21 @@
 
 #include "ssgx_config_t_t.h"
 #include "ssgx_utils_t.h"
+#include "ssgx_utils_t_seal_handler.h"
+
+#include "crypto-suites/crypto-encode/base64.h"
 
 using JSON = nlohmann::json;
 
 namespace ssgx {
 namespace config_t {
+
+namespace {
+
+constexpr char kSealedPrefix[] = "ssgxcfg.v1:";
+constexpr size_t kSealedPrefixLen = sizeof(kSealedPrefix) - 1;
+
+} // namespace
 
 static std::string GetPathStr(const std::vector<TomlKey>& path) {
     if (path.empty())
@@ -30,8 +41,26 @@ static std::string GetPathStr(const std::vector<TomlKey>& path) {
     return paths_json.dump();
 }
 
+
 TomlConfig::~TomlConfig() {
+    if (dirty_) SaveFile();
     ssgx_ocall_toml_free(ref_untrusted_toml_obj_);
+}
+
+bool TomlConfig::SaveFile() {
+    if (!dirty_ || file_path_.empty()) return true;
+    int ret = 0;
+    sgx_status_t status = ssgx_ocall_toml_write_file(&ret, ref_untrusted_toml_obj_, file_path_.c_str());
+    if (status != SGX_SUCCESS) {
+        err_msg_ = ssgx::utils_t::FormatStr("ssgx_ocall_toml_write_file failed, sgx status: 0x%x", status);
+        return false;
+    }
+    if (ret < 0) {
+        err_msg_ = ssgx::utils_t::FormatStr("ssgx_ocall_toml_write_file failed, error code: %d", ret);
+        return false;
+    }
+    dirty_ = false;
+    return true;
 }
 
 bool TomlConfig::LoadFile(const char* toml_file_path) {
@@ -56,6 +85,7 @@ bool TomlConfig::LoadFile(const char* toml_file_path) {
         return false;
     }
     ref_untrusted_toml_obj_ = toml_ctx;
+    file_path_.assign(toml_file_path);
 
     return true;
 }
@@ -307,6 +337,144 @@ bool TomlConfig::GetArrayValues(uint64_t ptr_toml, const std::string& path_str, 
     ssgx::utils_t::FreeOutside(ptr_value, value_size);
     ptr_value = nullptr;
     return true;
+}
+
+std::optional<std::string> TomlConfig::GetSecretString(const std::vector<TomlKey>& path) {
+    if (ref_untrusted_toml_obj_ == 0) {
+        err_msg_ = ssgx::utils_t::FormatStr("The TOML object has not been initialized");
+        return std::nullopt;
+    }
+    if (path.empty()) {
+        err_msg_ = ssgx::utils_t::FormatStr("Empty path passed to GetSecretString");
+        return std::nullopt;
+    }
+    if (path.front().type_ != TomlKey::KeyType::String) {
+        err_msg_ = ssgx::utils_t::FormatStr("GetSecretString leaf key must be a string (arrays not supported)");
+        return std::nullopt;
+    }
+
+    const std::string dotted_path = [&path]() {
+        std::string s;
+        for (auto it = path.rbegin(); it != path.rend(); ++it) {
+            if (!s.empty())
+                s += '.';
+            if (it->type_ == TomlKey::KeyType::String) {
+                s += it->str_key_;
+            } else {
+                s += std::to_string(it->index_key_);
+            }
+        }
+        return s;
+    }();
+
+    auto with_key = [&](const char* key) {
+        auto p = path;
+        p.insert(p.begin(), TomlKey(key));
+        return p;
+    };
+
+    // ----- Phase 1: try <path>.sealed → unseal and return plaintext -----
+    {
+        auto sealed_opt = GetString(with_key("sealed"));
+        if (sealed_opt.has_value()) {
+            const std::string& sealed_value = *sealed_opt;
+            if (sealed_value.compare(0, kSealedPrefixLen, kSealedPrefix) != 0) {
+                err_msg_ = ssgx::utils_t::FormatStr(
+                    "Field '%s.sealed' has unknown sealed format prefix (expected '%s')",
+                    dotted_path.c_str(), kSealedPrefix);
+                return std::nullopt;
+            }
+            const std::string b64 = sealed_value.substr(kSealedPrefixLen);
+            std::string blob_str;
+            try {
+                blob_str = safeheron::encode::base64::DecodeFromBase64(b64);
+            } catch (...) {
+                err_msg_ = ssgx::utils_t::FormatStr("Field '%s.sealed' contains invalid base64", dotted_path.c_str());
+                return std::nullopt;
+            }
+            if (blob_str.empty()) {
+                err_msg_ = ssgx::utils_t::FormatStr("Field '%s.sealed' has empty sealed blob after base64 decode",
+                                                    dotted_path.c_str());
+                return std::nullopt;
+            }
+
+            ssgx::utils_t::SealHandler sealer(SGX_KEYPOLICY_MRENCLAVE);
+            auto unsealed = sealer.UnsealData(reinterpret_cast<const uint8_t*>(blob_str.data()),
+                                              static_cast<uint32_t>(blob_str.size()));
+            if (!unsealed.has_value()) {
+                err_msg_ = ssgx::utils_t::FormatStr(
+                    "Failed to unseal field '%s' (possible causes: MRENCLAVE drift, machine drift, tampering): %s",
+                    dotted_path.c_str(), sealer.GetLastError().c_str());
+                return std::nullopt;
+            }
+            // Verify the AAD embedded in the blob matches the current field path to prevent
+            // cross-field blob copying attacks.
+            const std::string stored_aad(unsealed->additional_mac_text.begin(),
+                                         unsealed->additional_mac_text.end());
+            if (stored_aad != dotted_path) {
+                err_msg_ = ssgx::utils_t::FormatStr(
+                    "Failed to unseal field '%s': AAD path mismatch (blob was sealed for '%s')",
+                    dotted_path.c_str(), stored_aad.c_str());
+                return std::nullopt;
+            }
+            return std::string(unsealed->decrypted_text.begin(), unsealed->decrypted_text.end());
+        }
+    }
+
+    // ----- Phase 2: try <path>.secret → seal, rewrite the line in the file, return plaintext -----
+    {
+        auto plain_opt = GetString(with_key("secret"));
+        if (plain_opt.has_value()) {
+            const std::string& plaintext = *plain_opt;
+            if (plaintext.empty()) {
+                err_msg_ = ssgx::utils_t::FormatStr("Field '%s.secret' is empty; refusing to seal an empty value",
+                                                    dotted_path.c_str());
+                return std::nullopt;
+            }
+            if (file_path_.empty()) {
+                err_msg_ = ssgx::utils_t::FormatStr(
+                    "Cannot rewrite '%s.secret': file path is unknown (was LoadFile called?)", dotted_path.c_str());
+                return std::nullopt;
+            }
+
+            ssgx::utils_t::SealHandler sealer(SGX_KEYPOLICY_MRENCLAVE);
+            sealer.SetAdditionalMacText(reinterpret_cast<const uint8_t*>(dotted_path.data()),
+                                        static_cast<uint32_t>(dotted_path.size()));
+            auto sealed = sealer.SealData(reinterpret_cast<const uint8_t*>(plaintext.data()),
+                                          static_cast<uint32_t>(plaintext.size()));
+            if (!sealed.has_value()) {
+                err_msg_ = ssgx::utils_t::FormatStr("Failed to seal field '%s.secret': %s", dotted_path.c_str(),
+                                                    sealer.GetLastError().c_str());
+                return std::nullopt;
+            }
+            const std::string b64 =
+                safeheron::encode::base64::EncodeToBase64(sealed->data(), sealed->size());
+            const std::string encoded_value = std::string(kSealedPrefix) + b64;
+
+            int ret = 0;
+            const std::string secret_path_str = GetPathStr(with_key("secret"));
+            sgx_status_t status = ssgx_ocall_toml_seal_in_place(
+                &ret, ref_untrusted_toml_obj_, secret_path_str.c_str(), encoded_value.c_str());
+            if (status != SGX_SUCCESS) {
+                err_msg_ = ssgx::utils_t::FormatStr(
+                    "ssgx_ocall_toml_seal_in_place failed, sgx status: 0x%x", status);
+                return std::nullopt;
+            }
+            if (ret < 0) {
+                err_msg_ = ssgx::utils_t::FormatStr(
+                    "ssgx_ocall_toml_seal_in_place failed for field '%s', error code: %d",
+                    dotted_path.c_str(), ret);
+                return std::nullopt;
+            }
+            dirty_ = true;
+            return plaintext;
+        }
+    }
+
+    err_msg_ = ssgx::utils_t::FormatStr(
+        "Field '%s' is not annotated as a secret (neither '.secret' nor '.sealed' sub-key found)",
+        dotted_path.c_str());
+    return std::nullopt;
 }
 
 } // namespace config_t

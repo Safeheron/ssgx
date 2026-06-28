@@ -82,7 +82,7 @@ ssgx_check_variable_path(SSGX_ENV__SGXSDK_INCLUDE_DIR "SGX include directory")
 ssgx_check_path("${SSGX_ENV__SGXSDK_LIBRARY_DIR}/libsgx_urts.so" "SGX SDK library")
 ssgx_check_path("${SSGX_ENV__SGXSDK_INCLUDE_DIR}/sgx.h" "SGX SDK header file")
 
-include("${CMAKE_CURRENT_LIST_DIR}/ssgx-sdk-version.cmake")
+include(${CMAKE_CURRENT_LIST_DIR}/ssgx-sdk-version.cmake)
 
 # ============================================================================================
 # Section 3: Include directories for SGX SDK  (tlibc, libcxx, protobuf)
@@ -238,7 +238,7 @@ function(ssgx_get_untrusted_env
 )
     # Check if SSGX_ENV__HARDWARE_MODE is defined, and if not, set a default value
     if(NOT DEFINED SSGX_ENV__HARDWARE_MODE)
-        set(SSGX_ENV__HARDWARE_MODE "ON" CACHE INTERNAL)
+        set(SSGX_ENV__HARDWARE_MODE "ON" CACHE INTERNAL "SSGX_ENV__HARDWARE_MODE is set to default: ON (Enabled)")
     endif()
     if(${SSGX_ENV__HARDWARE_MODE})
         message(STATUS "SSGX_ENV__HARDWARE_MODE: Enabled")
@@ -251,7 +251,7 @@ function(ssgx_get_untrusted_env
     endif()
 
     if(NOT DEFINED SSGX_ENV__BUILD_MODE)
-        set(SSGX_ENV__BUILD_MODE "PreRelease" CACHE INTERNAL)
+        set(SSGX_ENV__BUILD_MODE "PreRelease" CACHE INTERNAL "SSGX_ENV__BUILD_MODE is set to default: PreRelease")
     endif()
     if(${SSGX_ENV__BUILD_MODE} STREQUAL "Debug")
         message(STATUS "SSGX_ENV__BUILD_MODE: Debug")

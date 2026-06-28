@@ -203,6 +203,8 @@ BigDecimal::BigDecimal(const char* str) {
                                                   "Paramter str is an invalid number.");
     }
 }
+BigDecimal::BigDecimal(const std::string& str): BigDecimal(str.c_str()) {
+}
 
 BigDecimal::BigDecimal(const BigDecimal& num) {
     mpd_context_t ctx;

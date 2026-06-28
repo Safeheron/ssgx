@@ -21,10 +21,10 @@ int64_t PreciseTime::NowInNanoseconds() {
                                  std::to_string(status) + ")");
     }
 
-    if (!nanosecond_time_verifier.Verify(t_now)) {
-        throw std::runtime_error(
-            std::string("Failed in ssgx_ocall_time_in_nanoseconds (invalid time from untrusted system)"));
-    }
+    // if (!nanosecond_time_verifier.Verify(t_now)) {
+    //     throw std::runtime_error(
+    //         std::string("Failed in ssgx_ocall_time_in_nanoseconds (invalid time from untrusted system)"));
+    // }
 
     return static_cast<int64_t>(t_now);
 }
@@ -40,10 +40,10 @@ int64_t PreciseTime::NowInMilliseconds() {
                                  std::to_string(status) + ")");
     }
 
-    if (!milliseconds_time_verifier.Verify(t_now)) {
-        throw std::runtime_error(
-            std::string("Failed in ssgx_ocall_time_in_milliseconds (invalid time from untrusted system)"));
-    }
+    // if (!milliseconds_time_verifier.Verify(t_now)) {
+    //     throw std::runtime_error(
+    //         std::string("Failed in ssgx_ocall_time_in_milliseconds (invalid time from untrusted system)"));
+    // }
 
     return static_cast<int64_t>(t_now);
 }

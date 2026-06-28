@@ -18,7 +18,7 @@ To address the limitations of SGX’s standard library support, this framework p
 
 To mitigate the lack of third-party libraries in the SGX environment, the framework offers:
 
-- [TOML configuration file management](./test/BasicTest/cases/ssgx_config_t_test.cpp), ensuring secure configuration parsing and management.
+- [TOML configuration file management](./test/BasicTest/cases/ssgx_config_t_test.cpp), ensuring secure configuration parsing and management, including field-level secret sealing that transparently encrypts sensitive configuration values inside the Enclave — review its benefits, trade-offs, and recommended usage in the [secret sealing guide](./docs/config_secret_sealing.md) before adopting it.
 - [JSON parsing support](./test/BasicTest/cases/ssgx_json_t_test.cpp), delivering efficient JSON handling for improved data exchange.
 - [High-precision numerical computation](./test/BasicTest/cases/ssgx_decimal_t_test.cpp), applicable to cryptographic and financial applications requiring precise
   calculations.

@@ -141,7 +141,7 @@ class BigDecimal {
      *
      */
     explicit BigDecimal(const char* str);
-
+    explicit BigDecimal(const std::string& str);
     /**
      * @brief The copy constructor
      *        Construct a BigDecimal objet and copy the value from num

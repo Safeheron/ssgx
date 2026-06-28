@@ -69,8 +69,7 @@ enum class ErrorCode : uint32_t {
     /// The actual size of supplemental data did not match the expected value.
     SupplementSizeIsWrong = 0x0014,
 
-    /// The requested operation mode is not supported by this library.
-    /// Currently raised when out-of-process AESM mode (SGX_AESM_ADDR) is detected.
+    /// The requested attestation mode is not supported (e.g. out-of-process via AESM socket).
     ModeNotSupported = 0x0015,
 
     /// An unspecified or unexpected error occurred.

@@ -13,6 +13,7 @@ ssgx_add_enclave_library(${enclave}
                 ../cases/ssgx_testframework_t_test.cpp
                 ../cases/ssgx_filesystem_t_test.cpp
                 ../cases/ssgx_config_t_test.cpp
+                ../cases/ssgx_config_t_secret_test.cpp
                 ../cases/ssgx_decimal_t_test.cpp
                 ../cases/ssgx_log_t_test.cpp
                 ../cases/ssgx_json_t_test.cpp

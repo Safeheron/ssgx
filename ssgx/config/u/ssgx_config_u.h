@@ -6,7 +6,9 @@
 namespace ssgx {
 namespace config_u {
 
-bool find_toml_node(const char* path, const toml::value* context, toml::value& toml_obj);
+bool find_toml_node(const char* path, const toml::ordered_value* context, toml::ordered_value& toml_obj);
+
+int zero_file_content(const char* file_path);
 
 }
 } // namespace ssgx
