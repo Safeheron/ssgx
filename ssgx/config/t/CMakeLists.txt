@@ -1,10 +1,13 @@
 set(LIB_NAME "ssgx_config_t")
 set(NAMESPACE "ssgx")
 
+find_package(SafeheronCryptoSuitesSgx REQUIRED)
+
 ssgx_add_trusted_library(${LIB_NAME}
         SRCS ssgx_config_t.cpp
         EDL ssgx_config_t.edl
         EDL_SEARCH_PATHS ${SSGX_EDL_SEARCH_PATHS}
+        TRUSTED_LIBS SafeheronCryptoSuitesSgx
 )
 add_library(${NAMESPACE}::${LIB_NAME} ALIAS ${LIB_NAME})
 
@@ -14,6 +17,7 @@ target_include_directories(${LIB_NAME} PRIVATE
         ${CMAKE_SOURCE_DIR}/common/include/
         ${CMAKE_SOURCE_DIR}/ssgx/common
         ${CMAKE_INSTALL_PREFIX}/include
+        ${SafeheronCryptoSuitesSgx_INCLUDE_DIR}
 )
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)

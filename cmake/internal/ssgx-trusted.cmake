@@ -224,6 +224,11 @@ function(ssgx_add_enclave_library target)
     list(REMOVE_DUPLICATES COMPLETE_DEPS)  # Ensure uniqueness
     message(STATUS "COMPLETE_DEPS = ${COMPLETE_DEPS}")
 
+    # Enable the security flags
+    target_link_options(${target} PRIVATE
+        -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
+    )
+
     # Set general linker options.
     # These are options that apply to the target as a whole, separate from the library list.
     target_link_options(${target} PRIVATE
@@ -247,7 +252,6 @@ function(ssgx_add_enclave_library target)
             -lsgx_tstdc
             -lsgx_pthread
             -lsgx_tcxx
-            -lsgx_tkey_exchange
             -lsgx_tcrypto
             -lsgx_tprotected_fs
             -lsgx_protobuf

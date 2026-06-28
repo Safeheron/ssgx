@@ -73,12 +73,16 @@ void RequestHandler::handleRequest(HTTPServerRequest& request, HTTPServerRespons
     std::unique_ptr<char, decltype(&free)> res_status_headers_ptr(raw_status_headers_ptr, free);
 
     // Failed to handle request in enclave
-    if (result != SGX_SUCCESS || ret != 0) {
+    if (result != SGX_SUCCESS) {
         response.setStatus(HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
-        response.send() << "Internal Server Error, failed to call enclave API.";
+        response.send() << "Internal Server Error, failed to call enclave API. result = " << result;
         return;
     }
-
+    if (ret != 0) {
+        response.setStatus(HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);
+        response.send() << "Internal Server Error, failed to call enclave API. ret = " << ret;
+        return;
+    }
     // No header string, return errors
     if (!raw_status_headers_ptr) {
         response.setStatus(HTTPResponse::HTTP_INTERNAL_SERVER_ERROR);

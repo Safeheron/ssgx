@@ -33,13 +33,13 @@ echo "[INFO] Ensuring build root directory exists at: ${BUILD_ROOT_DIR}"
 mkdir -p "$BUILD_ROOT_DIR"
 
 # Source code and build directories
-TOML11_URL="https://github.com/ToruNiina/toml11/archive/refs/tags/v3.8.1.zip"
-TOML11_ZIP="${BUILD_ROOT_DIR}/toml11-v3.8.1.zip"
-TOML11_DIR="${BUILD_ROOT_DIR}/toml11-3.8.1" # Directory created after unzipping
+TOML11_URL="https://github.com/ToruNiina/toml11/archive/refs/tags/v4.4.0.zip"
+TOML11_ZIP="${BUILD_ROOT_DIR}/toml11-v4.4.0.zip"
+TOML11_DIR="${BUILD_ROOT_DIR}/toml11-4.4.0" # Directory created after unzipping
 BUILD_DIR="${BUILD_ROOT_DIR}/build"
 
 # Define expected checksum for the zip file
-EXPECTED_CHKSUM="72e956f42002dd1566c5551a693ec0f6fa3bea3a0e7bcea29bcdace98738da74"
+EXPECTED_CHKSUM="075dd130a9f517c3eaed502ece6a2c1088b1d0dd4aa79882fd0ca7609325ffdc"
 
 # Set install location with a default
 INSTALL_PREFIX="${untrusted_install_prefix:-/usr/local}"
@@ -47,7 +47,7 @@ INSTALL_PREFIX="${untrusted_install_prefix:-/usr/local}"
 # --- 3. Download and Verify ---
 # Download the toml11 archive if it doesn't already exist
 if [ ! -f "$TOML11_ZIP" ]; then
-    echo "[STEP] Downloading toml11 v3.8.1..."
+    echo "[STEP] Downloading toml11 v4.4.0 : ${TOML11_URL}"
     wget -O "$TOML11_ZIP" "$TOML11_URL" || { echo "[ERROR] Failed to download toml11"; exit 1; }
 fi
 

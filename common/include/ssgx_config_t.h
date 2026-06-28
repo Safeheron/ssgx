@@ -273,6 +273,77 @@ class TomlConfig {
     };
 
     /**
+     * @brief Reads a sensitive string field with transparent SGX-Sealing-based encryption.
+     *
+     * @details
+     * Marker convention (TOML dotted-key suffix):
+     *  - `<key>.secret = "plaintext"` — operator deploys plaintext
+     *  - `<key>.sealed = "ssgxcfg.v1:<base64>"` — encrypted form on disk
+     *
+     * Lookup order on every call:
+     *  -# Try `<args>.sealed` — base64-decode + unseal (AAD = dotted path) → return plaintext
+     *  -# Try `<args>.secret` — encrypt the plaintext, update the in-memory AST so
+     *     `<key>.secret` becomes `<key>.sealed = "ssgxcfg.v1:..."`, return plaintext.
+     *     The file is written to disk by `SaveFile()` (called automatically by the
+     *     destructor, or explicitly before destruction to check for write errors).
+     *  -# Field is not annotated as a secret → return `std::nullopt` (strict mode)
+     *
+     * Sealing uses the current enclave's MRENCLAVE-bound key (and the SGX hardware key of the
+     * current CPU), so the rewritten file cannot be decrypted by other enclaves or other
+     * physical machines. The deployment model is therefore: each node receives the plaintext
+     * `.secret` config and seals it locally on first read.
+     *
+     * Supported value types: basic strings (`"..."`), multiline basic strings (`"""..."""`),
+     * literal strings (`'...'`), and multiline literal strings (`'''...'''`). Arrays and
+     * integers are not supported as secrets.
+     *
+     * No anti-rollback: the sealed blob is bound to the field path (AAD) but not to any
+     * version counter. Replacing `.sealed` with an older ciphertext of the same field will
+     * decrypt successfully and return the old plaintext.
+     *
+     * @warning Plaintext residue on first call (`.secret` path only):
+     *  - **Untrusted process memory**: the plaintext passes through the untrusted host memory
+     *    (TOML parser buffer, OCALL return buffer) before entering the enclave. Neither buffer
+     *    is explicitly zeroed — both are released via free() and may linger on the heap until overwritten. A process restart returns
+     *    those pages to the kernel free pool where they are zeroed on next allocation, which
+     *    defeats user-space attacks; however, a root user with kernel-module capability can read
+     *    freed physical pages before they are reallocated. To fully eliminate this residue,
+     *    reboot the machine after the first call so BIOS/UEFI clears all RAM on startup.
+     *  - **Disk**: the `.secret` file exists on disk before `SaveFile()` replaces it.
+     *    `SaveFile()` zeros the old file content via `mmap`/`explicit_bzero`/`msync` before
+     *    writing the sealed form, preventing recovery through raw block-device scans (`/dev/vda`).
+     *    SSD physical blocks may still retain data until garbage collection; using an encrypted
+     *    filesystem (e.g. LUKS) or placing the initial config on `tmpfs` eliminates this risk.
+     *  - **VM snapshot**: a snapshot taken while the process holds plaintext in memory captures
+     *    it permanently. Take snapshots only after restarting the process following first sealing.
+     *
+     * Subsequent calls (`.sealed` path) decrypt entirely inside the enclave; plaintext never
+     * enters untrusted memory or disk.
+     *
+     * @tparam Types The types of the keys (either `const char*` or `int`)
+     * @param[in] args The keys representing the data path to the sensitive string
+     * @return The plaintext string if success, otherwise `std::nullopt`. On failure
+     * `GetLastErrorMsg()` returns details (unknown prefix, base64 invalid, unseal failure
+     * including possible MRENCLAVE / machine drift or AAD path mismatch, file write failure).
+     *
+     * @par Example
+     * @code
+     *      TomlConfig toml;
+     *      toml.LoadFile("/etc/myapp/config.toml");
+     *      auto pwd = toml.GetSecretString("database", "password");
+     *      if (!pwd) {
+     *          Printf("Failed: %s\n", toml.GetLastErrorMsg().c_str());
+     *          return false;
+     *      }
+     * @endcode
+     */
+    template <typename... Types>
+    std::optional<std::string> GetSecretString(Types... args) {
+        std::vector<TomlKey> path = std::move(MakeArgs(args...));
+        return GetSecretString(path);
+    };
+
+    /**
      * @brief Get the error code when the function returns false
      * @return error code
      *
@@ -290,6 +361,16 @@ class TomlConfig {
     [[nodiscard]] std::string GetLastErrorMsg() const {
         return err_msg_;
     }
+
+    /**
+     * @brief Persist all in-memory secret sealing to disk.
+     *
+     * @details Called automatically by the destructor. Call explicitly before
+     * destruction if you need to detect write errors.
+     *
+     * @return True on success; false on failure (check GetLastErrorMsg()).
+     */
+    bool SaveFile();
 
   private:
     /**
@@ -339,10 +420,20 @@ class TomlConfig {
      */
     bool GetArrayValues(uint64_t ptr_toml, const std::string &path_str, std::string &values);
 
+    /**
+     * @brief Internal method backing the GetSecretString template
+     *
+     * @param[in] path The vector of keys representing the data path
+     *
+     * @return The plaintext if found and decryptable, otherwise std::nullopt.
+     */
+    std::optional<std::string> GetSecretString(const std::vector<TomlKey>& path);
+
   private:
     uint64_t ref_untrusted_toml_obj_; ///< Reference to the untrusted TOML object
-                                      ///< in memory
-    std::string err_msg_;             ///< Error code
+    std::string err_msg_;             ///< Last error message
+    std::string file_path_;           ///< Path of the TOML file as passed to LoadFile
+    bool dirty_ = false;              ///< True if in-memory AST has unsealed secrets not yet written to disk
 };
 
 } // namespace config_t

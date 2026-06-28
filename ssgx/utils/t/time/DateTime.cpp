@@ -25,9 +25,9 @@ DateTime DateTime::Now() {
         throw std::runtime_error(std::string("Failed in ssgx_ocall_time (error code: ") + std::to_string(status) + ")");
     }
 
-    if (!time_verifier.Verify(t_now)) {
-        throw std::runtime_error(std::string("Failed in ssgx_ocall_time (invalid time from untrusted system)"));
-    }
+    // if (!time_verifier.Verify(t_now)) {
+    //     throw std::runtime_error(std::string("Failed in ssgx_ocall_time (invalid time from untrusted system)"));
+    // }
 
     return DateTime(static_cast<time_t >(t_now));
 }

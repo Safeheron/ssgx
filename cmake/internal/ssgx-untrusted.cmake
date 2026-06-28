@@ -172,7 +172,6 @@ function(ssgx_add_untrusted_executable target)
             -L${SSGX_ENV__SGXSDK_LIBRARY_DIR}
             -l${SGX_URTS_LIB}
             -l${SGX_USVC_LIB}
-            -lsgx_ukey_exchange
             -lsgx_uprotected_fs
             -lpthread
             -lsgx_dcap_ql

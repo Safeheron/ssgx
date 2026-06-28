@@ -63,5 +63,32 @@ enclave {
          *      <0 -  Failed
          */
         void ssgx_ocall_toml_free(uint64_t ref_toml_file);
+
+        /* Rename a .secret key to .sealed and update its value in the in-memory AST.
+         * No I/O is performed; call ssgx_ocall_toml_write_file to persist.
+         *
+         * Parameters:
+         *      ref_toml_file[in]    - reference to TOML Object (AST updated in-place)
+         *      secret_path_json[in] - JSON array path to the .secret node,
+         *                             e.g. "[\"db\", \"password\", \"secret\"]"
+         *      sealed_value[in]     - sealed string to write (e.g. "ssgxcfg.v1:<base64>")
+         * Return:
+         *      0 - Success
+         *      <0 - Failed
+         */
+        int32_t ssgx_ocall_toml_seal_in_place(uint64_t ref_toml_file, [in, string] const char* secret_path_json, [in, string] const char* sealed_value);
+
+        /* Write the current in-memory AST to disk, replacing the existing file.
+         * Zeroes the original file content before overwriting (mmap/bzero/msync)
+         * to prevent plaintext recovery from freed disk blocks.
+         *
+         * Parameters:
+         *      ref_toml_file[in]     - reference to TOML Object
+         *      file_path[in, string] - path of TOML file on disk
+         * Return:
+         *      0 - Success
+         *      <0 - Failed
+         */
+        int32_t ssgx_ocall_toml_write_file(uint64_t ref_toml_file, [in, string] const char* file_path);
     };
 };
