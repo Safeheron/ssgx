@@ -44,6 +44,7 @@ class SSGXLogger {
      * @param log_level Logging level to filter log messages.
      * @param append_console Whether to output log messages to the console.
      * Default is false.
+     * @throws std::runtime_error If the log file cannot be opened for writing.
      */
     void Init(const std::string& logger_name, const std::string& log_file,
               LogLevel log_level = ssgx::log_u::LogLevel::INFO, bool append_console = false);

@@ -10,6 +10,7 @@ enclave {
         */
         int ssgx_ocall_write_log( int32_t level, [string, in] const char* msg);
         void ssgx_ocall_set_trace_id( [string, in] const char* trace_id);
+        int ssgx_ocall_init_logger( [string, in] const char* logger_name, [string, in] const char* log_file, int32_t log_level, int32_t append_console);
     };
 
 };

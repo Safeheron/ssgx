@@ -23,6 +23,7 @@ To mitigate the lack of third-party libraries in the SGX environment, the framew
 - [High-precision numerical computation](./test/BasicTest/cases/ssgx_decimal_t_test.cpp), applicable to cryptographic and financial applications requiring precise
   calculations.
 - [Logging system support](./test/BasicTest/cases/ssgx_log_t_test.cpp), offering an SGX-compatible logging framework for debugging and error analysis.
+- [Fmt string formatting support](./docs/fmt_sgx_usage.md), delivering type-safe modern C++ formatting inside the Enclave.
 - HTTP(s) functionality, encapsulating secure [HTTPs client](./test/BasicTest/cases/ssgx_http_t_client_test.cpp) and [HTTP server](./test/HttpTest/enc/Enclave.cpp), enhancing Enclave's
   networking capabilities.
 - [UUID Version 4 generation](./test/BasicTest/cases/ssgx_utils_t_uuid_test.cpp), providing random unique identifiers for various application needs.
