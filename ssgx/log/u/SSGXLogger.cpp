@@ -1,3 +1,6 @@
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 #include <mutex>
 #include <stdexcept>
 #include <string>
@@ -28,6 +31,18 @@ SSGXLogger& SSGXLogger::GetInstance() {
 
 void SSGXLogger::Init(const std::string& logger_name, const std::string& log_file, LogLevel log_level,
                       bool append_console) {
+    // log4cplus reports file-open failures through its ErrorHandler instead of
+    // throwing, which would leave the logger "initialized" while every message
+    // is silently dropped. Probe the log file for writability and fail fast.
+    FILE* probe = std::fopen(log_file.c_str(), "a");
+    if (probe == nullptr) {
+        // Save errno immediately: the string concatenation below allocates,
+        // and any library call may clobber errno.
+        int saved_errno = errno;
+        throw std::runtime_error("SSGXLogger::Init: log file is not writable: " + log_file + " (" +
+                                 std::strerror(saved_errno) + ")");
+    }
+    std::fclose(probe);
     ssgx::log_u::LogHelper::GetInstance().SetLogger(logger_name, log_file, MapLogLevel(log_level), append_console);
     ssgx::log_u::LogHelper::GetInstance().SetTraceId("main");
     logger_name_ = logger_name;

@@ -31,8 +31,14 @@ int SGX_CDECL main(int argc, char* argv[]) {
     printf("Enclave is created!\n\n");
 
     // Initialize SSGXLogger
-    ssgx::log_u::SSGXLogger::GetInstance().Init("/opt/logs/tee-log/log-safeheron-mpc-engine", "PROJECT_NAME",
-                                                ssgx::log_u::LogLevel::INFO, true);
+    try {
+        ssgx::log_u::SSGXLogger::GetInstance().Init("PROJECT_NAME", "/opt/logs/tee-log/log-safeheron-mpc-engine",
+                                                    ssgx::log_u::LogLevel::INFO, true);
+    } catch (const std::exception& e) {
+        printf("--->Failed to initialize logger: %s\n", e.what());
+        ret = -1;
+        goto _exit;
+    }
 
     printf("Try to run ecall_run_http_client() ...\n\n");
     sgx_status = ecall_run_http_client(test_enclave_id, &ret);

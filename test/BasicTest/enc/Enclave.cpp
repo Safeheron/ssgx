@@ -5,9 +5,8 @@
 #include "Enclave_t.h"
 
 int ecall_run_test() {
-    // Initialize log4cplus on the host via OCALL — replaces the previous
-    // host-side init in test/BasicTest/host/host.cpp. Demonstrates the
-    // trusted-side log Init() interface added in commit a980394.
+    // Initialize logging from inside the enclave (via OCALL) instead of the
+    // host side, demonstrating the trusted-side log Init() interface.
     try {
         ssgx::log_t::SSGXLogger::GetInstance().Init(
             "PROJECT_NAME", "/tmp/tee-log",
