@@ -9,6 +9,7 @@ ssgx_add_enclave_library(${enclave}
                 ../cases/ssgx_utils_t_uuid_test.cpp
                 ../cases/ssgx_utils_t_seal_handler_test.cpp
                 ../cases/ssgx_utils_t_fmt_test.cpp
+                ../cases/ssgx_fmt_t_test.cpp
                 ../cases/ssgx_utils_t_mem_test.cpp
                 ../cases/ssgx_testframework_t_test.cpp
                 ../cases/ssgx_filesystem_t_test.cpp

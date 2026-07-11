@@ -1,0 +1,377 @@
+diff --git a/include/fmt/base.h b/include/fmt/base.h
+index 0d57867782fcf571e7581b2bc70fa04bf43e4ccc..baa96543c849a31620d3cc829bb74141e3783a1b 100644
+--- a/include/fmt/base.h
++++ b/include/fmt/base.h
+@@ -8,13 +8,28 @@
+ #ifndef FMT_BASE_H_
+ #define FMT_BASE_H_
+ 
++#ifndef FMT_HEADER_ONLY
++#  define FMT_HEADER_ONLY
++#endif
++#ifndef FMT_NO_IO
++#  define FMT_NO_IO
++#endif
++#ifndef FMT_USE_LOCALE
++#  define FMT_USE_LOCALE 0
++#endif
++#ifndef FMT_USE_FLOAT128
++#  define FMT_USE_FLOAT128 0
++#endif
++
+ #if defined(FMT_IMPORT_STD) && !defined(FMT_MODULE)
+ #  define FMT_MODULE
+ #endif
+ 
+ #ifndef FMT_MODULE
+ #  include <limits.h>  // CHAR_BIT
+-#  include <stdio.h>   // FILE
++#  ifndef FMT_NO_IO
++#    include <stdio.h>   // FILE
++#  endif
+ #  include <string.h>  // memcmp
+ 
+ #  include <type_traits>  // std::enable_if
+@@ -2451,11 +2466,13 @@ FMT_CONSTEXPR inline auto is_locking() -> bool {
+ FMT_API void vformat_to(buffer<char>& buf, string_view fmt, format_args args,
+                         locale_ref loc = {});
+ 
+-#if FMT_WIN32
++#ifndef FMT_NO_IO
++#  if FMT_WIN32
+ FMT_API void vprint_mojibake(FILE*, string_view, format_args, bool);
+-#else  // format_args is passed by reference since it is defined later.
++#  else  // format_args is passed by reference since it is defined later.
+ inline void vprint_mojibake(FILE*, string_view, const format_args&, bool) {}
+-#endif
++#  endif
++#endif  // FMT_NO_IO
+ }  // namespace detail
+ 
+ // The main public API.
+@@ -2942,6 +2959,7 @@ FMT_NODISCARD FMT_INLINE auto formatted_size(format_string<T...> fmt,
+   return buf.count();
+ }
+ 
++#ifndef FMT_NO_IO
+ FMT_API void vprint(string_view fmt, format_args args);
+ FMT_API void vprint(FILE* f, string_view fmt, format_args args);
+ FMT_API void vprintln(FILE* f, string_view fmt, format_args args);
+@@ -2997,6 +3015,7 @@ template <typename... T>
+ FMT_INLINE void println(format_string<T...> fmt, T&&... args) {
+   return fmt::println(stdout, fmt, static_cast<T&&>(args)...);
+ }
++#endif  // FMT_NO_IO
+ 
+ FMT_PRAGMA_GCC(diagnostic pop)
+ FMT_PRAGMA_CLANG(diagnostic pop)
+diff --git a/include/fmt/chrono.h b/include/fmt/chrono.h
+index 9fbeeed6798e73f4f3f076894385dfcb232c9287..7bf3a6629cd51c6d5dd56184dee31c639ee28826 100644
+--- a/include/fmt/chrono.h
++++ b/include/fmt/chrono.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_CHRONO_H_
+ #define FMT_CHRONO_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #ifndef FMT_MODULE
+ #  include <algorithm>
+ #  include <chrono>
+@@ -2243,4 +2247,5 @@ struct formatter<local_time<Duration>, Char>
+ FMT_END_EXPORT
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_CHRONO_H_
+diff --git a/include/fmt/color.h b/include/fmt/color.h
+index 2cbc53ca3048f5cbd232cb3077c99f1ff1321726..0924262e580d191e71b580d5b2aa598b5709f0db 100644
+--- a/include/fmt/color.h
++++ b/include/fmt/color.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_COLOR_H_
+ #define FMT_COLOR_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #include "format.h"
+ 
+ FMT_BEGIN_NAMESPACE
+@@ -634,4 +638,5 @@ FMT_CONSTEXPR auto styled(const T& value, text_style ts)
+ FMT_END_EXPORT
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_COLOR_H_
+diff --git a/include/fmt/compile.h b/include/fmt/compile.h
+index 64eb7a20dc8134841b4e36d1056b446fac0e5362..8fe728b734e2a9fcb725ef427aa0965cb78ed77f 100644
+--- a/include/fmt/compile.h
++++ b/include/fmt/compile.h
+@@ -534,6 +534,7 @@ FMT_CONSTEXPR20 auto formatted_size(const S& fmt, T&&... args) -> size_t {
+   return buf.count();
+ }
+ 
++#ifndef FMT_NO_IO
+ template <typename S, typename... T,
+           FMT_ENABLE_IF(is_compiled_string<S>::value)>
+ void print(std::FILE* f, const S& fmt, T&&... args) {
+@@ -547,6 +548,7 @@ template <typename S, typename... T,
+ void print(const S& fmt, T&&... args) {
+   print(stdout, fmt, std::forward<T>(args)...);
+ }
++#endif  // FMT_NO_IO
+ 
+ template <size_t N> class static_format_result {
+  private:
+diff --git a/include/fmt/format-inl.h b/include/fmt/format-inl.h
+index 945cb912a6014813864ef8c92bc20e28339f77ab..87b860b9bc149952daed62b4329bb70d56696efe 100644
+--- a/include/fmt/format-inl.h
++++ b/include/fmt/format-inl.h
+@@ -34,9 +34,13 @@ FMT_BEGIN_NAMESPACE
+ 
+ #ifndef FMT_CUSTOM_ASSERT_FAIL
+ FMT_FUNC void assert_fail(const char* file, int line, const char* message) {
++#ifndef FMT_NO_IO
+   // Use unchecked std::fprintf to avoid triggering another assertion when
+   // writing to stderr fails.
+   std::fprintf(stderr, "%s:%d: assertion failed: %s", file, line, message);
++#else
++  (void)file; (void)line; (void)message;
++#endif
+   abort();
+ }
+ #endif
+@@ -97,17 +101,21 @@ FMT_FUNC void do_report_error(format_func func, int error_code,
+                               const char* message) noexcept {
+   memory_buffer full_message;
+   func(full_message, error_code, message);
++#ifndef FMT_NO_IO
+   // Don't use fwrite_all because the latter may throw.
+   if (std::fwrite(full_message.data(), full_message.size(), 1, stderr) > 0)
+     std::fputc('\n', stderr);
++#endif
+ }
+ 
++#ifndef FMT_NO_IO
+ // A wrapper around fwrite that throws on error.
+ inline void fwrite_all(const void* ptr, size_t count, FILE* stream) {
+   size_t written = std::fwrite(ptr, 1, count, stream);
+   if (written < count)
+     FMT_THROW(system_error(errno, FMT_STRING("cannot write to file")));
+ }
++#endif  // FMT_NO_IO
+ 
+ template <typename Char>
+ FMT_FUNC auto thousands_sep_impl(locale_ref loc) -> thousands_sep_result<Char> {
+@@ -1462,6 +1470,7 @@ template <typename T> struct span {
+   size_t size;
+ };
+ 
++#ifndef FMT_NO_IO
+ template <typename F> auto flockfile(F* f) -> decltype(_lock_file(f)) {
+   _lock_file(f);
+ }
+@@ -1690,7 +1699,9 @@ class file_print_buffer<F, enable_if_t<has_flockfile<F>::value>>
+     if (flush) fflush(file_);
+   }
+ };
++#endif  // FMT_NO_IO
+ 
++#ifndef FMT_NO_IO
+ #if !defined(_WIN32) || defined(FMT_USE_WRITE_CONSOLE)
+ FMT_FUNC auto write_console(int, string_view) -> bool { return false; }
+ #else
+@@ -1704,8 +1715,7 @@ FMT_FUNC bool write_console(int fd, string_view text) {
+                        static_cast<dword>(u16.size()), nullptr, nullptr) != 0;
+ }
+ #endif
+-
+-#ifdef _WIN32
++#  ifdef _WIN32
+ // Print assuming legacy (non-Unicode) encoding.
+ FMT_FUNC void vprint_mojibake(std::FILE* f, string_view fmt, format_args args,
+                               bool newline) {
+@@ -1714,20 +1724,22 @@ FMT_FUNC void vprint_mojibake(std::FILE* f, string_view fmt, format_args args,
+   if (newline) buffer.push_back('\n');
+   fwrite_all(buffer.data(), buffer.size(), f);
+ }
+-#endif
++#  endif
+ 
+ FMT_FUNC void print(std::FILE* f, string_view text) {
+-#if defined(_WIN32) && !defined(FMT_USE_WRITE_CONSOLE)
++#  if defined(_WIN32) && !defined(FMT_USE_WRITE_CONSOLE)
+   int fd = _fileno(f);
+   if (_isatty(fd)) {
+     std::fflush(f);
+     if (write_console(fd, text)) return;
+   }
+-#endif
++#  endif
+   fwrite_all(text.data(), text.size(), f);
+ }
++#endif  // FMT_NO_IO
+ }  // namespace detail
+ 
++#ifndef FMT_NO_IO
+ FMT_FUNC void vprint_buffered(std::FILE* f, string_view fmt, format_args args) {
+   auto buffer = memory_buffer();
+   detail::vformat_to(buffer, fmt, args);
+@@ -1751,6 +1763,7 @@ FMT_FUNC void vprintln(std::FILE* f, string_view fmt, format_args args) {
+ FMT_FUNC void vprint(string_view fmt, format_args args) {
+   vprint(stdout, fmt, args);
+ }
++#endif  // FMT_NO_IO
+ 
+ namespace detail {
+ 
+diff --git a/include/fmt/format.h b/include/fmt/format.h
+index 4a6530072f875b752fe7c3a9b3b0285260d17c63..3f3daf3ff71c5404be018eff78a066875204a635 100644
+--- a/include/fmt/format.h
++++ b/include/fmt/format.h
+@@ -926,6 +926,7 @@ FMT_NODISCARD auto to_string(const basic_memory_buffer<char, SIZE>& buf)
+   return {buf.data(), size};
+ }
+ 
++#ifndef FMT_NO_IO
+ // A writer to a buffered stream. It doesn't own the underlying stream.
+ class writer {
+  private:
+@@ -948,6 +949,7 @@ class writer {
+       fmt::print(file_, fmt, std::forward<T>(args)...);
+   }
+ };
++#endif  // FMT_NO_IO
+ 
+ class string_buffer {
+  private:
+@@ -957,7 +959,9 @@ class string_buffer {
+  public:
+   inline string_buffer() : buf_(str_) {}
+ 
++#ifndef FMT_NO_IO
+   inline operator writer() { return buf_; }
++#endif  // FMT_NO_IO
+   inline auto str() -> std::string& { return str_; }
+ };
+ 
+@@ -978,8 +982,10 @@ class loc_value;
+ 
+ FMT_END_EXPORT
+ namespace detail {
++#ifndef FMT_NO_IO
+ FMT_API auto write_console(int fd, string_view text) -> bool;
+ FMT_API void print(FILE*, string_view);
++#endif  // FMT_NO_IO
+ }  // namespace detail
+ 
+ namespace detail {
+diff --git a/include/fmt/os.h b/include/fmt/os.h
+index 94d730de281ec9a5af1a02bafe5fdea67f6734b7..3e0f551f7cbfc550510a7689fe999a5a0b7ae949 100644
+--- a/include/fmt/os.h
++++ b/include/fmt/os.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_OS_H_
+ #define FMT_OS_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #include "format.h"
+ 
+ #ifndef FMT_MODULE
+@@ -424,4 +428,5 @@ inline auto output_file(cstring_view path, T... params) -> ostream {
+ FMT_END_EXPORT
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_OS_H_
+diff --git a/include/fmt/ostream.h b/include/fmt/ostream.h
+index bf2371b7998488601cd1b7b297e06d8a14a8933b..b23549930ae9f8670eb5a2c7da805b20de9dd6d4 100644
+--- a/include/fmt/ostream.h
++++ b/include/fmt/ostream.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_OSTREAM_H_
+ #define FMT_OSTREAM_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #ifndef FMT_MODULE
+ #  include <fstream>  // std::filebuf
+ #endif
+@@ -164,4 +168,5 @@ void println(std::ostream& os, format_string<T...> fmt, T&&... args) {
+ 
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_OSTREAM_H_
+diff --git a/include/fmt/printf.h b/include/fmt/printf.h
+index cc066d8c07c7a49c194400eceea928c850e558bc..d511171009c85f458d9071fea4ffb29199a60044 100644
+--- a/include/fmt/printf.h
++++ b/include/fmt/printf.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_PRINTF_H_
+ #define FMT_PRINTF_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #ifndef FMT_MODULE
+ #  include <algorithm>  // std::find
+ #  include <limits>     // std::numeric_limits
+@@ -621,4 +625,5 @@ inline auto printf(string_view fmt, const T&... args) -> int {
+ FMT_END_EXPORT
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_PRINTF_H_
+diff --git a/include/fmt/std.h b/include/fmt/std.h
+index 184c6d26d605f47518ef1f420b1ae7a698807445..7d8b909a038711c1f15e8811a10246adfc4bb0f1 100644
+--- a/include/fmt/std.h
++++ b/include/fmt/std.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_STD_H_
+ #define FMT_STD_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #include "format.h"
+ #include "ostream.h"
+ 
+@@ -724,4 +728,5 @@ struct formatter<std::reference_wrapper<T>, Char,
+ 
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_STD_H_
+diff --git a/include/fmt/xchar.h b/include/fmt/xchar.h
+index 9334b87fdc13cb8600c4392eefd08e9ef050c024..a1ffd4ad0d907ff3d6a9145498e64119a928636f 100644
+--- a/include/fmt/xchar.h
++++ b/include/fmt/xchar.h
+@@ -8,6 +8,10 @@
+ #ifndef FMT_XCHAR_H_
+ #define FMT_XCHAR_H_
+ 
++#include "base.h"
++
++#ifndef FMT_NO_IO
++
+ #include "color.h"
+ #include "format.h"
+ #include "ostream.h"
+@@ -353,4 +357,5 @@ template <typename T> inline auto to_wstring(const T& value) -> std::wstring {
+ FMT_END_EXPORT
+ FMT_END_NAMESPACE
+ 
++#endif  // FMT_NO_IO
+ #endif  // FMT_XCHAR_H_
