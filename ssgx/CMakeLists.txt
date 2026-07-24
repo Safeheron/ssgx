@@ -1,4 +1,4 @@
-project(ssgx VERSION 1.0.1)
+project(ssgx VERSION 1.4.0)
 
 set(CMAKE_CXX_STANDARD 11)
 set(SSGX_EDL_SEARCH_PATHS ${CMAKE_CURRENT_SOURCE_DIR}/../common/include/ /opt/safeheron/ssgx/include/mbedtls)

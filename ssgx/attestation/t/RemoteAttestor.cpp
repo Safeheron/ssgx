@@ -122,6 +122,22 @@ bool RemoteAttestor::CreateReport(const uint8_t user_data[64], std::string& repo
         return false;
     }
 
+    // p_quote_data / quote_data_size come from the untrusted OCALL. sgx_is_outside_enclave() treats
+    // (nullptr, size) as "outside", so null must be checked explicitly; also cap the size so a bogus
+    // huge value cannot drive an out-of-bounds read / large allocation. (Mirrors High-S3.)
+    static constexpr uint32_t kQuoteDataSizeLimit = 1 * 1024 * 1024;  // 1 MiB; real ECDSA quotes are a few KB
+    if (p_quote_data == nullptr) {
+        error_code_ = ErrorCode::BufferValidateFailed;
+        error_msg_ = "ssgx_ocall_create_quote_data returned a null quote buffer.";
+        return false;
+    }
+    if (quote_data_size == 0 || quote_data_size > kQuoteDataSizeLimit) {
+        FreeOutside(p_quote_data, quote_data_size);
+        error_code_ = ErrorCode::BufferValidateFailed;
+        error_msg_ = "ssgx_ocall_create_quote_data returned an invalid quote size.";
+        return false;
+    }
+
     // Validate p_quote_data is outside of enclave or not
     if (sgx_is_outside_enclave(p_quote_data, quote_data_size) == 0) {
         // Don't call FreeOutside() to release p_quote_data in this case, due to this is an exception case.
@@ -312,6 +328,21 @@ ErrorCode VerifyRawQuoteWithQvE(const std::string& quote_report, std::string& ou
         return ErrorCode::InvalidParameter;
     }
 
+    // quote_report is attacker-controlled: ensure it is a full, SGX ECDSA v3 quote before
+    // casting to sgx_quote3_t. A short buffer would read report_body out of bounds, and a
+    // differently-laid-out (e.g. TDX v4) report body would be misread at v3 offsets.
+    if (quote_report.size() < sizeof(sgx_quote3_t)) {
+        err_msg = "quote_report is too small to be a valid SGX quote.";
+        return ErrorCode::InvalidParameter;
+    }
+    {
+        const sgx_quote3_t* p_hdr = reinterpret_cast<const sgx_quote3_t*>(quote_report.c_str());
+        if (p_hdr->header.version != 3 || p_hdr->header.att_key_type != SGX_QL_ALG_ECDSA_P256) {
+            err_msg = "quote_report is not a supported SGX ECDSA v3 quote.";
+            return ErrorCode::InvalidParameter;
+        }
+    }
+
     // Set nonce
     rand::RandomBytes(rand_nonce, 16);
     memcpy(qve_report_info.nonce.rand, rand_nonce, sizeof(rand_nonce));
@@ -341,13 +372,30 @@ ErrorCode VerifyRawQuoteWithQvE(const std::string& quote_report, std::string& ou
         return ErrorCode::BufferValidateFailed;
     }
 
+    // supplemental_buff / supplemental_buff_size come from the untrusted OCALL and must not be
+    // trusted. sgx_is_outside_enclave() returns "outside" for (nullptr, size), so an explicit null
+    // check is required or the memcpy below would dereference null. On the legitimate path the
+    // untrusted side always returns a non-null buffer of exactly sizeof(sgx_ql_qv_supplemental_t).
+    if (supplemental_buff == nullptr) {
+        err_msg = "OCALL returned a null supplemental data buffer.";
+        return ErrorCode::BufferValidateFailed;
+    }
+    if (supplemental_buff_size != sizeof(sgx_ql_qv_supplemental_t)) {
+        FreeOutside(supplemental_buff, supplemental_buff_size);
+        err_msg = "Unexpected supplemental data size returned by OCALL.";
+        return ErrorCode::SupplementSizeIsWrong;
+    }
+
     // copy supplemental data into Enclave, because sgx_tvl_verify_qve_report_and_identity() requests
     // all parameters are inside of Enclave.
-    if ((supplemental_buff != nullptr) && supplemental_buff_size > 0) {
-        supplemental_inside_buff = static_cast<uint8_t*>(malloc(supplemental_buff_size));
-        memcpy(supplemental_inside_buff, supplemental_buff, supplemental_buff_size);
+    supplemental_inside_buff = static_cast<uint8_t*>(malloc(supplemental_buff_size));
+    if (supplemental_inside_buff == nullptr) {
         FreeOutside(supplemental_buff, supplemental_buff_size);
+        err_msg = "Failed to allocate enclave buffer for supplemental data.";
+        return ErrorCode::MallocFailed;
     }
+    memcpy(supplemental_inside_buff, supplemental_buff, supplemental_buff_size);
+    FreeOutside(supplemental_buff, supplemental_buff_size);
 
     sgx_lfence();
 

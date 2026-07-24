@@ -22,9 +22,7 @@ namespace attestation_u {
  */
 class RemoteAttestor {
   public:
-    RemoteAttestor() {
-        error_code_ = ErrorCode::Unknown;
-    }
+    RemoteAttestor();
 
   public:
         /**

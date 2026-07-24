@@ -15,7 +15,7 @@
 using namespace ssgx::http_u;
 
 extern "C" int ssgx_ocall_http_create_listener(uint64_t sgx_eid, const char* url, uint64_t timeout_seconds,
-                                               uint64_t max_queued, uint64_t max_threads) {
+                                               uint64_t max_threads, uint64_t max_queued) {
     if (!IsNonEmptyString(url)) {
         return -1;
     }
@@ -23,10 +23,10 @@ extern "C" int ssgx_ocall_http_create_listener(uint64_t sgx_eid, const char* url
     std::string server_id = std::to_string(sgx_eid) + "_" + url;
 
     // Destroy the listener with the same name.
-    if (ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Contains(server_id)) {
-        auto last_listener = ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Query(server_id);
-        last_listener->stop();
-        ssgx::internal::ObjectRegistry<std::string, HTTPServer>::Unregister(server_id);
+    if (ssgx::internal::ObjectRegistry<std::string, SSGXHttpServer>::Contains(server_id)) {
+        auto last_listener = ssgx::internal::ObjectRegistry<std::string, SSGXHttpServer>::Query(server_id);
+        last_listener->Stop();
+        ssgx::internal::ObjectRegistry<std::string, SSGXHttpServer>::Unregister(server_id);
     }
 
     // Create a new server listener

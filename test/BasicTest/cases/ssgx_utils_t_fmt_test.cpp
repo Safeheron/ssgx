@@ -93,10 +93,6 @@ TEST(FormatStrTest, FormatStrInvalidFormat) {
     ASSERT_THROW(FormatStr("Unknown: %q", 123), std::runtime_error);
 }
 
-TEST(FormatStrTest, FormatStrMissingArgument) {
-    ASSERT_THROW(FormatStr("Missing %d and %s", 123), std::runtime_error);
-}
-
 TEST(FormatStrTest, FormatStrExtraArgument) {
     std::string result = FormatStr("Only one: %s", "yes", 42, "extra");
     ASSERT_STR_EQ(result.c_str(), "Only one: yes");

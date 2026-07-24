@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include "ssgx_testframework_t.h"
 #include "ssgx_utils_t.h"
 
@@ -125,6 +127,78 @@ TEST(DateTime, FromFormatTime) {
     ASSERT_EQ(time.GetHour(), 14);
     ASSERT_EQ(time.GetMinute(), 30);
     ASSERT_EQ(time.GetSecond(), 0);
+}
+
+// DateTime input-validation tests (year 1900-9999, month 1-12, leap-aware day-of-month,
+// hour/min/sec bounds), added for the validation introduced in 6f6deb5.
+TEST(DateTimeValidation, LeapYearFeb29Valid) {
+    ASSERT_NO_THROW(DateTime(2020, 2, 29, 0, 0, 0)); // 2020 divisible by 4 -> leap
+    DateTime d(2020, 2, 29, 12, 0, 0);
+    ASSERT_EQ(d.GetMonth(), 2);
+    ASSERT_EQ(d.GetDay(), 29);
+}
+
+TEST(DateTimeValidation, Divisible400IsLeap) {
+    ASSERT_NO_THROW(DateTime(2000, 2, 29, 0, 0, 0)); // 2000 divisible by 400 -> leap
+    DateTime d(2000, 2, 29, 0, 0, 0);
+    ASSERT_EQ(d.GetDay(), 29);
+}
+
+TEST(DateTimeValidation, NonLeapYearFeb29Throws) {
+    ASSERT_THROW(DateTime(2021, 2, 29, 0, 0, 0), std::invalid_argument); // 2021 not leap
+}
+
+TEST(DateTimeValidation, Divisible100NotLeapThrows) {
+    ASSERT_THROW(DateTime(1900, 2, 29, 0, 0, 0), std::invalid_argument); // /100 but not /400
+}
+
+TEST(DateTimeValidation, Feb28NonLeapValid) {
+    ASSERT_NO_THROW(DateTime(2021, 2, 28, 0, 0, 0));
+}
+
+TEST(DateTimeValidation, DayExceedsMonthLengthThrows) {
+    ASSERT_THROW(DateTime(2023, 4, 31, 0, 0, 0), std::invalid_argument); // April has 30 days
+    ASSERT_THROW(DateTime(2023, 6, 31, 0, 0, 0), std::invalid_argument); // June has 30 days
+}
+
+TEST(DateTimeValidation, LastDayOf31DayMonthValid) {
+    ASSERT_NO_THROW(DateTime(2023, 1, 31, 0, 0, 0));
+    ASSERT_NO_THROW(DateTime(2023, 12, 31, 0, 0, 0));
+}
+
+TEST(DateTimeValidation, DayZeroThrows) {
+    ASSERT_THROW(DateTime(2023, 1, 0, 0, 0, 0), std::invalid_argument);
+}
+
+TEST(DateTimeValidation, MonthOutOfRangeThrows) {
+    ASSERT_THROW(DateTime(2023, 0, 15, 0, 0, 0), std::invalid_argument);
+    ASSERT_THROW(DateTime(2023, 13, 15, 0, 0, 0), std::invalid_argument);
+}
+
+TEST(DateTimeValidation, YearBoundsValid) {
+    ASSERT_NO_THROW(DateTime(1900, 1, 1, 0, 0, 0));
+    ASSERT_NO_THROW(DateTime(9999, 12, 31, 23, 59, 59));
+}
+
+TEST(DateTimeValidation, YearOutOfRangeThrows) {
+    ASSERT_THROW(DateTime(1899, 1, 1, 0, 0, 0), std::invalid_argument);
+    ASSERT_THROW(DateTime(10000, 1, 1, 0, 0, 0), std::invalid_argument);
+}
+
+TEST(DateTimeValidation, TimeComponentsOutOfRangeThrow) {
+    ASSERT_THROW(DateTime(2023, 1, 1, 24, 0, 0), std::invalid_argument); // hour
+    ASSERT_THROW(DateTime(2023, 1, 1, 0, 60, 0), std::invalid_argument); // minute
+    ASSERT_THROW(DateTime(2023, 1, 1, 0, 0, 60), std::invalid_argument); // second
+}
+
+TEST(DateTimeValidation, FromFormatTimeInvalidDateThrows) {
+    ASSERT_THROW(DateTime::FromFormatTime("2021-02-29 00:00:00"), std::invalid_argument); // non-leap Feb 29
+    ASSERT_THROW(DateTime::FromFormatTime("2023-13-01 00:00:00"), std::invalid_argument); // bad month
+    ASSERT_THROW(DateTime::FromFormatTime("2023-01-01"), std::invalid_argument);          // wrong length
+}
+
+TEST(DateTimeValidation, FromFormatTimeLeapValid) {
+    ASSERT_NO_THROW(DateTime::FromFormatTime("2020-02-29 12:00:00"));
 }
 
 // PreciseTime Tests

@@ -1,3 +1,6 @@
+#ifndef SSGX_HTTP_T_COMMON_HTTP_UTILS_H
+#define SSGX_HTTP_T_COMMON_HTTP_UTILS_H
+
 #include <stdexcept>
 
 #include "ssgx_http_t_structs.h"
@@ -27,16 +30,11 @@ inline uint64_t GetHeaderValueUint64(const TypeHeaders& headers, const std::stri
 }
 
 inline bool HasCRLF(const std::string& s) {
-    auto p = s.c_str();
-    while (*p) {
-        if (*p == '\r' || *p == '\n') {
-            return true;
-        }
-        p++;
-    }
-    return false;
+    return s.find_first_of("\r\n") != std::string::npos;
 }
 
 } // namespace detail
 } // namespace http_t
 } // namespace ssgx
+
+#endif // SSGX_HTTP_T_COMMON_HTTP_UTILS_H

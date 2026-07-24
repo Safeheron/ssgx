@@ -93,7 +93,7 @@ extern "C" int ssgx_ocall_verify_quote_data(const uint8_t* quote_report, uint64_
     quote3_error_t dcap_ret = SGX_QL_ERROR_UNEXPECTED;
     sgx_ql_qe_report_info_t qve_report_info = {0};
     tee_supp_data_descriptor_t supp_data = {0};
-    supp_ver_t latest_ver;
+    supp_ver_t latest_ver = {0};
 
     // Checking
     if (!quote_report || quote_report_size <= 0) {

@@ -45,7 +45,17 @@ void RequestHandler::handleRequest(HTTPServerRequest& request, HTTPServerRespons
     std::string req_params_json_str = req_params_json.dump();
     std::string req_header_json_str = req_headers_json.dump();
 
-    // Parse Body
+    // Parse Body — reject an over-large request body (10 MB) before reading it, to
+    // avoid unbounded host allocation and an oversized copy across the ECALL.
+    // Note: getContentLength() returns UNKNOWN_CONTENT_LENGTH (-1) for chunked/
+    // unspecified length, which is < the limit and thus passes here; that case is
+    // still backstopped by the enclave-side size cap in ssgx_ecall_http_on_message.
+    constexpr std::streamsize kMaxRequestBodySize = 10 * 1024 * 1024;
+    if (request.getContentLength() > kMaxRequestBodySize) {
+        response.setStatus(HTTPResponse::HTTP_REQUEST_ENTITY_TOO_LARGE);
+        response.send() << "Request Entity Too Large";
+        return;
+    }
     std::string req_body_str;
     Poco::StreamCopier::copyToString(request.stream(), req_body_str);
 

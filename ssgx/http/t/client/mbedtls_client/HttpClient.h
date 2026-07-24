@@ -32,7 +32,7 @@ enum class HttpError {
     HandShakeFailed = 9,      /* Handshake failed in mbedtls */
     VerifyCACertsFailed = 10, /* Verify host ssl certificate failed in mbedtls */
     ConnectFailed = 11,       /* mbedtls connect failed */
-    WriteFaild = 12,          /* mbedtls write data failed */
+    WriteFailed = 12,          /* mbedtls write data failed */
     ReadFailed = 13,          /* mbedtls read data failed. */
     MallocFailed = 14,        /* Failed to malloc memory */
 };

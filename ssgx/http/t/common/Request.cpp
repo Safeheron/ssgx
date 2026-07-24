@@ -49,14 +49,17 @@ const TypeHeaders& Request::Headers() const {
     return headers_;
 }
 
-void Request::SetHeader(const std::string& key, const std::string& val) {
-    if (!detail::HasCRLF(key) && !detail::HasCRLF(val)) {
-        headers_.emplace(key, val);
+bool Request::SetHeader(const std::string& key, const std::string& val) {
+    if (detail::HasCRLF(key) || detail::HasCRLF(val)) {
+        return false;
     }
+    // emplace does not overwrite an existing key; .second is false when the key
+    // is already present, so a duplicate key is reported as a failure.
+    return headers_.emplace(key, val).second;
 }
 
-void Request::SetHeader(const std::string& key, int64_t val) {
-    SetHeader(key, std::to_string(val));
+bool Request::SetHeader(const std::string& key, int64_t val) {
+    return SetHeader(key, std::to_string(val));
 }
 
 bool Request::HasHeader(const std::string& key) const {
@@ -64,7 +67,8 @@ bool Request::HasHeader(const std::string& key) const {
 }
 
 std::string Request::GetHeaderValue(const std::string& key, const char* def) const {
-    return detail::GetHeaderValue(headers_, key, "");
+    const char* v = detail::GetHeaderValue(headers_, key, def);
+    return v ? std::string(v) : std::string();
 }
 
 uint64_t Request::GetHeaderValueUint64(const std::string& key, uint64_t def) const {
@@ -79,14 +83,17 @@ const TypeParams& Request::Params() const {
     return params_;
 }
 
-void Request::SetParam(const std::string& key, const std::string& val) {
-    if (!detail::HasCRLF(key) || !detail::HasCRLF(val)) {
-        params_.emplace(key, val);
+bool Request::SetParam(const std::string& key, const std::string& val) {
+    if (detail::HasCRLF(key) || detail::HasCRLF(val)) {
+        return false;
     }
+    // emplace does not overwrite an existing key; .second is false when the key
+    // is already present, so a duplicate key is reported as a failure.
+    return params_.emplace(key, val).second;
 }
 
-void Request::SetParam(const std::string& key, int64_t val) {
-    SetParam(key, std::to_string(val));
+bool Request::SetParam(const std::string& key, int64_t val) {
+    return SetParam(key, std::to_string(val));
 }
 
 bool Request::HasParam(const std::string& key) const {
@@ -122,34 +129,36 @@ bool Request::FromJsonStr(const std::string& json_str) {
 }
 
 bool Request::FromJsonStr(const char* json_str) {
-    nlohmann::json root_obj;
+    // The whole body is inside try/catch: parse AND the subsequent get<>()/iteration can throw
+    // (e.g. nlohmann type_error when a host-controlled value has the wrong type). Returning false on
+    // any exception keeps it from escaping the caller's ECALL and terminating the enclave.
     try {
-        root_obj = nlohmann::json::parse(json_str);
+        nlohmann::json root_obj = nlohmann::json::parse(json_str);
+
+        if (root_obj.contains("method") && !root_obj["method"].is_null()) {
+            SetMethod(root_obj["method"].get<std::string>());
+        }
+
+        if (root_obj.contains("path") && !root_obj["path"].is_null()) {
+            SetPath(root_obj["path"].get<std::string>());
+        }
+
+        if (root_obj.contains("headers") && !root_obj["headers"].is_null()) {
+            nlohmann::json t_obj = root_obj["headers"];
+            for (auto it = t_obj.begin(); it != t_obj.end(); ++it) {
+                SetHeader(it.key(), it.value().get<std::string>());
+            }
+        }
+        if (root_obj.contains("params") && !root_obj["params"].is_null()) {
+            nlohmann::json t_obj = root_obj["params"];
+            for (auto it = t_obj.begin(); it != t_obj.end(); ++it) {
+                SetParam(it.key(), it.value().get<std::string>());
+            }
+        }
+        return true;
     } catch (const std::exception& e) {
         return false;
     }
-
-    if (root_obj.contains("method") && !root_obj["method"].is_null()) {
-        SetMethod(root_obj["method"].get<std::string>());
-    }
-
-    if (root_obj.contains("path") && !root_obj["path"].is_null()) {
-        SetPath(root_obj["path"].get<std::string>());
-    }
-
-    if (root_obj.contains("headers") && !root_obj["headers"].is_null()) {
-        nlohmann::json t_obj = root_obj["headers"];
-        for (auto it = t_obj.begin(); it != t_obj.end(); ++it) {
-            SetHeader(it.key(), it.value().get<std::string>());
-        }
-    }
-    if (root_obj.contains("params") && !root_obj["params"].is_null()) {
-        nlohmann::json t_obj = root_obj["params"];
-        for (auto it = t_obj.begin(); it != t_obj.end(); ++it) {
-            SetParam(it.key(), it.value().get<std::string>());
-        }
-    }
-    return true;
 }
 
 bool Request::ToJsonStr(std::string& json_str) const {

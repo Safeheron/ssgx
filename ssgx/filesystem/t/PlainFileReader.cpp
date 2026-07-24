@@ -40,6 +40,16 @@ static size_t ReadPlainFile(const std::string& filepath, bool is_binary, uint8_t
 
     // if data_size > 0, assign data_buf to output buffer pointer
     if (data_size > 0) {
+        // data_size is returned by the untrusted OCALL. The untrusted side's SSGX_FS_MAX_FILE_SIZE
+        // check sits on the wrong side of the enclave boundary, so re-enforce the limit here (mirroring
+        // the write path in PlainFileWriter) before the buffer is validated or copied into the enclave;
+        // otherwise a malicious host could return a huge size and exhaust EPC. FreeOutside self-guards
+        // (null + sgx_is_outside_enclave), so it is safe to call before the checks below.
+        if (data_size > FS_MAX_FILE_SIZE) {
+            utils_t::FreeOutside(data_buf, data_size);
+            throw FileSystemException("File size returned by OCALL exceeds the allowed maximum");
+        }
+
         // encounter an exception!
         if (!data_buf) {
             throw FileSystemException("Internal error, data_buf is nullptr");

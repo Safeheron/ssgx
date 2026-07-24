@@ -173,7 +173,7 @@ BigDecimal::BigDecimal(const char* str) {
 
     // Validate str, it must not be empty,
     // and its max length must be less than SSGX_MAX_PREC + 10.
-    if (!str || strnlen(str, 1) == 0 || strlen(str) > SSGX_MAX_PREC + 10) {
+    if (!str || strnlen(str, 1) == 0 || strnlen(str, SSGX_MAX_PREC + 11) > SSGX_MAX_PREC + 10) {
         throw ssgx::exception_t::LocatedException(
             __FILE__, __LINE__, __FUNCTION__, -1,
             "Invalid parameter! str must not be empty, or its length exceeds the max.");
@@ -242,7 +242,7 @@ BigDecimal& BigDecimal::operator=(const BigDecimal& num) {
 
     SetDefaultContext(&ctx);
     if (ptr_data_) {
-        delete ptr_data_;
+        mpd_del(ptr_data_);
         ptr_data_ = nullptr;
     }
     if (!(ptr_data_ = mpd_new(&ctx))) {
@@ -466,6 +466,8 @@ BigDecimal BigDecimal::SetScale(int scale, RoundType round_type) const {
 
     SetDefaultContext(&ctx);
     if (!mpd_qsetround(&ctx, MapRoundType(round_type))) {
+        mpd_del(scale_num);
+        scale_num = nullptr;
         throw ssgx::exception_t::LocatedException(__FILE__, __LINE__, __FUNCTION__, -4,
                                                   "Parameter round_type is invalid.");
     }
@@ -504,6 +506,12 @@ bool BigDecimal::IsValidDecimal(const char* expr) {
     mpd_context_t ctx;
     mpd_t* ptr = nullptr;
     std::string error_msg;
+
+    // mpd_set_string() dereferences expr; a null pointer would crash. (An empty string is left to
+    // mpd_set_string, which flags it as a conversion-syntax error → NaN → invalid below.)
+    if (!expr) {
+        return false;
+    }
 
     SetDefaultContext(&ctx);
     if (!(ptr = mpd_new(&ctx))) {

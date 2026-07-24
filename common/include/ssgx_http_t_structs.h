@@ -187,22 +187,26 @@ class Request {
     /**
      * @brief Set a specific header for the request.
      *
-     * This method sets a specific header for the HTTP request.
+     * This method sets a specific header for the HTTP request. The header is not set if the key
+     * or value contains a CR/LF character, or if the key already exists (headers are not overwritten).
      *
      * @param key The key (header name) to set.
      * @param val The value for the header.
+     * @return True if the header was set; false if it was rejected (CR/LF in key/value) or the key already exists.
      */
-    void SetHeader(const std::string& key, const std::string& val);
+    bool SetHeader(const std::string& key, const std::string& val);
 
     /**
      * @brief Set a specific header for the request with an integer value.
      *
-     * This method sets a specific header for the HTTP request with an integer value.
+     * This method sets a specific header for the HTTP request with an integer value. The header is
+     * not set if the key contains a CR/LF character, or if the key already exists (headers are not overwritten).
      *
      * @param key The key (header name) to set.
      * @param val The integer value for the header.
+     * @return True if the header was set; false if it was rejected (CR/LF in key) or the key already exists.
      */
-    void SetHeader(const std::string& key, int64_t val);
+    bool SetHeader(const std::string& key, int64_t val);
 
     /**
      * @brief Check if the request has a specific header.
@@ -258,22 +262,27 @@ class Request {
     /**
      * @brief Set a specific parameter for the request.
      *
-     * This method sets a specific query parameter for the HTTP request.
+     * This method sets a specific query parameter for the HTTP request. The parameter is not set if
+     * the key or value contains a CR/LF character, or if the key already exists (parameters are not overwritten).
      *
      * @param key The key (parameter name) to set.
      * @param val The value for the parameter.
+     * @return True if the parameter was set; false if it was rejected (CR/LF in key/value) or the key already exists.
      */
-    void SetParam(const std::string& key, const std::string& val);
+    bool SetParam(const std::string& key, const std::string& val);
 
     /**
      * @brief Set a specific parameter for the request with an integer value.
      *
-     * This method sets a specific query parameter for the HTTP request with an integer value.
+     * This method sets a specific query parameter for the HTTP request with an integer value. The
+     * parameter is not set if the key contains a CR/LF character, or if the key already exists
+     * (parameters are not overwritten).
      *
      * @param key The key (parameter name) to set.
      * @param val The integer value for the parameter.
+     * @return True if the parameter was set; false if it was rejected (CR/LF in key) or the key already exists.
      */
-    void SetParam(const std::string& key, int64_t val);
+    bool SetParam(const std::string& key, int64_t val);
 
     /**
      * @brief Check if the request has a specific parameter.
@@ -461,22 +470,26 @@ class Response {
     /**
      * @brief Set a specific header for the response.
      *
-     * This method sets a specific header for the HTTP response.
+     * This method sets a specific header for the HTTP response. The header is not set if the key
+     * or value contains a CR/LF character, or if the key already exists (headers are not overwritten).
      *
      * @param key The key (header name) to set.
      * @param val The value for the header.
+     * @return True if the header was set; false if it was rejected (CR/LF in key/value) or the key already exists.
      */
-    void SetHeader(const std::string& key, const std::string& val);
+    bool SetHeader(const std::string& key, const std::string& val);
 
     /**
      * @brief Set a specific header for the response with an integer value.
      *
-     * This method sets a specific header for the HTTP response with an integer value.
+     * This method sets a specific header for the HTTP response with an integer value. The header is
+     * not set if the key contains a CR/LF character, or if the key already exists (headers are not overwritten).
      *
      * @param key The key (header name) to set.
      * @param val The integer value for the header.
+     * @return True if the header was set; false if it was rejected (CR/LF in key) or the key already exists.
      */
-    void SetHeader(const std::string& key, int64_t val);
+    bool SetHeader(const std::string& key, int64_t val);
 
     /**
      * @brief Check if the response has a specific header.
