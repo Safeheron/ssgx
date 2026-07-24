@@ -51,6 +51,10 @@ static ErrorCode VerifyRawQuote(const std::string& quote_report, std::string& ou
                                 std::optional<uint32_t>& out_qv_result,
                                 uint32_t& out_collateral_expiration_status, std::string& out_err_msg);
 
+RemoteAttestor::RemoteAttestor()
+    : error_code_(ErrorCode::Unknown), qv_result_(std::nullopt), accepted_qv_results_({SGX_QL_QV_RESULT_OK}) {
+}
+
 void RemoteAttestor::SetAcceptableResults(std::initializer_list<QvResult> accepted_results) {
     accepted_qv_results_.clear();
 
@@ -195,6 +199,21 @@ ErrorCode VerifyRawQuote(const std::string& quote_report, std::string& out_mrenc
     if (quote_report.empty()) {
         out_err_msg = "Parameter quote_report is null!";
         return ErrorCode::InvalidParameter;
+    }
+
+    // quote_report is attacker-controlled: ensure it is a full, SGX ECDSA v3 quote before
+    // casting to sgx_quote3_t. A short buffer would read report_body out of bounds, and a
+    // differently-laid-out (e.g. TDX v4) report body would be misread at v3 offsets.
+    if (quote_report.size() < sizeof(sgx_quote3_t)) {
+        out_err_msg = "quote_report is too small to be a valid SGX quote.";
+        return ErrorCode::InvalidParameter;
+    }
+    {
+        const sgx_quote3_t* p_hdr = reinterpret_cast<const sgx_quote3_t*>(quote_report.c_str());
+        if (p_hdr->header.version != 3 || p_hdr->header.att_key_type != SGX_QL_ALG_ECDSA_P256) {
+            out_err_msg = "quote_report is not a supported SGX ECDSA v3 quote.";
+            return ErrorCode::InvalidParameter;
+        }
     }
 
     // call DCAP quote verify library to get supplemental data size

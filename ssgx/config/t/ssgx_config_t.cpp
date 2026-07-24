@@ -23,6 +23,7 @@ namespace {
 
 constexpr char kSealedPrefix[] = "ssgxcfg.v1:";
 constexpr size_t kSealedPrefixLen = sizeof(kSealedPrefix) - 1;
+constexpr int32_t kConfigValueSizeLimit = 128 * 1024;  // matches u-side LIMITED_TOML_FILE_SIZE (config file cap)
 
 } // namespace
 
@@ -70,6 +71,15 @@ bool TomlConfig::LoadFile(const char* toml_file_path) {
 
     if (!toml_file_path || strnlen(toml_file_path, 1) == 0) {
         err_msg_ = ssgx::utils_t::FormatStr("The input toml file path is empty");
+        return false;
+    }
+
+    // Refuse to reload into an already-loaded object: overwriting ref_untrusted_toml_obj_ would
+    // leak the previous host TOML object, and if it had unsaved changes (dirty_) they would be
+    // lost silently. Use a fresh TomlConfig instance to load another file.
+    if (ref_untrusted_toml_obj_ != 0) {
+        err_msg_ = ssgx::utils_t::FormatStr(
+            "A TOML file is already loaded; use a new TomlConfig instance to load another file");
         return false;
     }
 
@@ -159,6 +169,17 @@ std::optional<std::string> TomlConfig::GetString(const std::vector<TomlKey>& pat
         return "";
     }
 
+    // Reject an over-large value_size early. Pure integer check on value_size (no dereference),
+    // so it is safe here and it bounds the strnlen scan below: sgx_is_outside_enclave only proves
+    // the range is outside the enclave, not that the host mapped it, so a huge size over a
+    // short/unmapped buffer could otherwise make strnlen walk into an unmapped page and fault.
+    if (value_size > kConfigValueSizeLimit) {
+        ssgx::utils_t::FreeOutside(ptr_value, value_size);
+        err_msg_ = ssgx::utils_t::FormatStr("The value size %d exceeds the maximum allowed (%d)",
+                                            value_size, kConfigValueSizeLimit);
+        return std::nullopt;
+    }
+
     // Return error if ptr_value is not outside of enclave
     if (sgx_is_outside_enclave(ptr_value, value_size) == 0) {
         // Don't call FreeOutside() in this case.
@@ -167,6 +188,7 @@ std::optional<std::string> TomlConfig::GetString(const std::vector<TomlKey>& pat
                                      "environment contains trusted memory");
         return std::nullopt;
     }
+    sgx_lfence();
 
     // Validate value string length
     size_t ptr_value_len = strnlen(ptr_value, value_size);
@@ -177,7 +199,6 @@ std::optional<std::string> TomlConfig::GetString(const std::vector<TomlKey>& pat
                                      "execution environment is incorrect");
         return std::nullopt;
     }
-    sgx_lfence();
 
     // return string
     value.assign(ptr_value, ptr_value_len);
@@ -316,6 +337,16 @@ bool TomlConfig::GetArrayValues(uint64_t ptr_toml, const std::string& path_str, 
     if (!ptr_value || value_size <= 0) {
         return true;
     }
+
+    // Reject an over-large value_size early (see GetString): pure integer check, bounds the
+    // strnlen scan below so a huge size over a short/unmapped buffer cannot make it fault.
+    if (value_size > kConfigValueSizeLimit) {
+        ssgx::utils_t::FreeOutside(ptr_value, value_size);
+        err_msg_ = ssgx::utils_t::FormatStr("The array value size %d exceeds the maximum allowed (%d)",
+                                            value_size, kConfigValueSizeLimit);
+        return false;
+    }
+
     if (sgx_is_outside_enclave(ptr_value, value_size) == 0) {
         // Don't call FreeOutside() in this case.
         err_msg_ =
@@ -323,6 +354,8 @@ bool TomlConfig::GetArrayValues(uint64_t ptr_toml, const std::string& path_str, 
                                      "environment contains trusted memory");
         return false;
     }
+    sgx_lfence();
+
     size_t ptr_value_len = strnlen(ptr_value, value_size);
     if (ptr_value_len != value_size - 1) {
         ssgx::utils_t::FreeOutside(ptr_value, value_size);
@@ -331,7 +364,6 @@ bool TomlConfig::GetArrayValues(uint64_t ptr_toml, const std::string& path_str, 
                                      "execution environment is incorrect");
         return false;
     }
-    sgx_lfence();
 
     values.assign(ptr_value, ptr_value_len);
     ssgx::utils_t::FreeOutside(ptr_value, value_size);

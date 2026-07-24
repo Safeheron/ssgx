@@ -164,6 +164,15 @@ HttpResult HttpClient::InitContext(const HttpUrl& url, HttpContext& ctx) {
 
     if (ctx.is_https_) {
         int ret = 0;
+
+        // Initialize the TLS contexts up front, before any early return below, so that even if a
+        // later step fails the HttpContext destructor frees initialized (not garbage) contexts.
+        mbedtls_ssl_init(&ctx.ssl_);
+        mbedtls_ssl_config_init(&ctx.conf_);
+        mbedtls_x509_crt_init(&ctx.ca_cert_);
+        mbedtls_ctr_drbg_init(&ctx.ctr_drbg_);
+        mbedtls_entropy_init(&ctx.entropy_);
+
         /*
          * Generate a random number as a nonce for mbedtls random number generation
          * The nonce length must be:
@@ -178,13 +187,6 @@ HttpResult HttpClient::InitContext(const HttpUrl& url, HttpContext& ctx) {
             return {HttpError::SetSeedFailed, "sgx_read_rand() failed! Unable to generate nonce."};
         }
 
-        // Initialize TLS components
-        mbedtls_ssl_init(&ctx.ssl_);
-        mbedtls_ssl_config_init(&ctx.conf_);
-        mbedtls_x509_crt_init(&ctx.ca_cert_);
-        mbedtls_ctr_drbg_init(&ctx.ctr_drbg_);
-        mbedtls_entropy_init(&ctx.entropy_);
-
         // Turn prediction resistance on
         mbedtls_ctr_drbg_set_prediction_resistance(&ctx.ctr_drbg_, MBEDTLS_CTR_DRBG_PR_ON);
 
@@ -192,7 +194,7 @@ HttpResult HttpClient::InitContext(const HttpUrl& url, HttpContext& ctx) {
         if ((ret = mbedtls_ctr_drbg_seed(&ctx.ctr_drbg_, mbedtls_entropy_func, &ctx.entropy_, nonce, sizeof(nonce))) !=
             0) {
             mbedtls_strerror(ret, err_msg, sizeof(err_msg));
-            return {HttpError::SetSeedFailed, "mbedtls_ctr_drbg_seed() filed! Error: " + std::string(err_msg)};
+            return {HttpError::SetSeedFailed, "mbedtls_ctr_drbg_seed() failed! Error: " + std::string(err_msg)};
         }
 
         // Parse and set CA certificates
@@ -201,7 +203,7 @@ HttpResult HttpClient::InitContext(const HttpUrl& url, HttpContext& ctx) {
             if ((ret = mbedtls_x509_crt_parse(&ctx.ca_cert_, reinterpret_cast<const uint8_t*>(server_ca_.c_str()),
                                               server_ca_.size() + 1)) != 0) {
                 mbedtls_strerror(ret, err_msg, sizeof(err_msg));
-                return {HttpError::CACertsWrong, "mbedtls_x509_crt_parse() filed! Error: " + std::string(err_msg)};
+                return {HttpError::CACertsWrong, "mbedtls_x509_crt_parse() failed! Error: " + std::string(err_msg)};
             }
         }
 
@@ -209,7 +211,7 @@ HttpResult HttpClient::InitContext(const HttpUrl& url, HttpContext& ctx) {
         if ((ret = mbedtls_ssl_config_defaults(&ctx.conf_, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
                                                MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
             mbedtls_strerror(ret, err_msg, sizeof(err_msg));
-            return {HttpError::SSLConfigFailed, "mbedtls_ssl_config_defaults() filed! Error: " + std::string(err_msg)};
+            return {HttpError::SSLConfigFailed, "mbedtls_ssl_config_defaults() failed! Error: " + std::string(err_msg)};
         }
 
         // During handshake, verify server's certificate is required!
@@ -241,19 +243,19 @@ HttpResult HttpClient::DoRequest(const HttpUrl& url, HttpContext& ctx, const std
     if ((ret = mbedtls_net_connect_ocall(&ctx.ssl_fd_, url.hostname().c_str(), url.port().c_str(),
                                          MBEDTLS_NET_PROTO_TCP)) != 0) {
         mbedtls_strerror(ret, err_msg, sizeof(err_msg));
-        return {HttpError::ConnectFailed, "mbedtls_net_connect_ocall() filed! Error: " + std::string(err_msg)};
+        return {HttpError::ConnectFailed, "mbedtls_net_connect_ocall() failed! Error: " + std::string(err_msg)};
     }
 
     // Do SSL/TLS connect for HTTPS
     if (ctx.is_https_) {
         if ((ret = mbedtls_ssl_setup(&ctx.ssl_, &ctx.conf_)) != 0) {
             mbedtls_strerror(ret, err_msg, sizeof(err_msg));
-            return {HttpError::SSLSetupFailed, "mbedtls_ssl_setup() filed! Error: " + std::string(err_msg)};
+            return {HttpError::SSLSetupFailed, "mbedtls_ssl_setup() failed! Error: " + std::string(err_msg)};
         }
 
         if ((ret = mbedtls_ssl_set_hostname(&ctx.ssl_, url.hostname().c_str())) != 0) {
             mbedtls_strerror(ret, err_msg, sizeof(err_msg));
-            return {HttpError::SSLHostNameWrong, "mbedtls_ssl_set_hostname() filed! Error: " + std::string(err_msg)};
+            return {HttpError::SSLHostNameWrong, "mbedtls_ssl_set_hostname() failed! Error: " + std::string(err_msg)};
         }
 
         mbedtls_ssl_set_bio(&ctx.ssl_, &ctx.ssl_fd_, mbedtls_net_send_ocall, mbedtls_net_recv_ocall,
@@ -267,16 +269,16 @@ HttpResult HttpClient::DoRequest(const HttpUrl& url, HttpContext& ctx, const std
                 mbedtls_strerror(ret, err_msg, sizeof(err_msg));
                 if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
                     return {HttpError::VerifyCACertsFailed,
-                            "mbedtls_ssl_handshake() filed! Error: " + std::string(err_msg)};
+                            "mbedtls_ssl_handshake() failed! Error: " + std::string(err_msg)};
                 }
-                return {HttpError::HandShakeFailed, "mbedtls_ssl_handshake() filed! Error: " + std::string(err_msg)};
+                return {HttpError::HandShakeFailed, "mbedtls_ssl_handshake() failed! Error: " + std::string(err_msg)};
             }
         }
     }
 
     // To send the entire request data
     if ((ret = http_write(ctx, request.c_str(), req_len)) <= 0) {
-        return {HttpError::WriteFaild, "http_write() filed! ret: " + std::to_string(ret)};
+        return {HttpError::WriteFailed, "http_write() failed! ret: " + std::to_string(ret)};
     }
 
     // To read the entire response data
@@ -328,7 +330,9 @@ int HttpClient::http_read(HttpContext& ctx, httpparser::Response& resp) {
     size_t max_retries = 5;
     size_t retries = 0;
     HttpResponseParser parser;
-    HttpResponseParser::ParseResult result;
+    // Initialize to "incomplete" so a zero-byte response (loop exits on recv==0 before any
+    // parse) is correctly treated as a failed read below, without relying on the caller's <=0 check.
+    HttpResponseParser::ParseResult result = HttpResponseParser::ParsingIncompleted;
 
     /*
      * Read response data from http connection multiple times,
@@ -349,6 +353,12 @@ int HttpClient::http_read(HttpContext& ctx, httpparser::Response& resp) {
             return ret;
         } else if (ret == 0) {
             break;
+        } else if (ret > DATA_BUF_SIZE) {
+            // ret is host-controlled on the plain-HTTP path (the OCALL recv return value); a value
+            // larger than the fixed enclave-stack buffer would make parser.parse(read_buf, read_buf + ret)
+            // read out of bounds. Reject it (mbedtls_ssl_read already clamps the HTTPS branch).
+            // -2 (distinct from the -1 retries-exceeded sentinel) so the failure is distinguishable in logs.
+            return -2;
         }
 
         read_size += ret;
@@ -364,6 +374,14 @@ int HttpClient::http_read(HttpContext& ctx, httpparser::Response& resp) {
         if (HttpResponseParser::ParsingCompleted == result || HttpResponseParser::ParsingError == result) {
             break;
         }
+    }
+
+    // Only report success if the parser saw a complete response. Anything else -- a zero-byte
+    // response (result stays ParsingIncompleted), a connection closed mid-response, or a malformed
+    // response (ParsingError) -- is a read failure, reported explicitly rather than relying on the
+    // caller's <=0 check.
+    if (result != HttpResponseParser::ParsingCompleted) {
+        return -3;
     }
 
     return read_size;

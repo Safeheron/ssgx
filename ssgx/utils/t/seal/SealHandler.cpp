@@ -80,6 +80,18 @@ std::optional<UnsealedData> SealHandler::UnsealData(const uint8_t* sealed_data, 
         return std::nullopt;
     }
 
+    // add_mac_text_size / encrypted_text_size are read from length fields inside the
+    // attacker-controlled blob. Before allocating, cross-check that they are consistent with the
+    // actual buffer length; a legitimate sealed blob is exactly
+    // sizeof(sgx_sealed_data_t) + add_mac_text_size + encrypted_text_size bytes. This rejects
+    // inflated internal lengths (and their integer overflow, reported as UINT32_MAX) that would
+    // otherwise trigger a huge resize() and abort the enclave.
+    uint32_t expected_sealed_size = sgx_calc_sealed_data_size(add_mac_text_size, encrypted_text_size);
+    if (expected_sealed_size == UINT32_MAX || expected_sealed_size != length) {
+        last_error_ = "Sealed data length is inconsistent with its header.";
+        return std::nullopt;
+    }
+
     UnsealedData result;
     result.additional_mac_text.resize(add_mac_text_size);
     result.decrypted_text.resize(encrypted_text_size);

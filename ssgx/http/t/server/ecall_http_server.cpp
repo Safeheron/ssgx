@@ -45,13 +45,21 @@ extern "C" int ssgx_ecall_http_on_message(const char* server_id, const char* req
     if (!http_server)
         return -6;
 
+    // Reject an over-large body (10 MB): backstop the host-side limit against a
+    // malicious host, and avoid a large in-enclave copy.
+    constexpr size_t kMaxRequestBodySize = 10 * 1024 * 1024;
+    if (req_body_size > kMaxRequestBodySize)
+        return -10;
+
     // prepare request
     http_request.SetMethod(req_method);
     http_request.SetPath(req_path);
-    if (req_body != nullptr && req_body_size > 0) {
-        http_request.SetBody(std::string(reinterpret_cast<const char*>(req_body), req_body_size));
-    }
     try {
+        // Inside try: std::string(req_body, req_body_size) may throw bad_alloc/
+        // length_error, which must not escape the ECALL (would call std::terminate).
+        if (req_body != nullptr && req_body_size > 0) {
+            http_request.SetBody(std::string(reinterpret_cast<const char*>(req_body), req_body_size));
+        }
         Response http_response;
 
         // process http_request

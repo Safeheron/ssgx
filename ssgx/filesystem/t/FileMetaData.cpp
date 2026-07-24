@@ -122,9 +122,16 @@ bool FileMetaData::ToFile(const std::string& path_name) {
         return false;
 
     // write metadata to file
-    std::vector<uint8_t> file_content(p_output.get(), p_output.get() + output_len);
-    PlainFileWriter writer(path_name);
-    writer.WriteAllBytes(file_content);
+    try {
+        std::vector<uint8_t> file_content(p_output.get(), p_output.get() + output_len);
+        PlainFileWriter writer(path_name);
+        writer.WriteAllBytes(file_content);
+    } catch (...) {
+        // Honor the bool contract: report I/O failure via a false return instead
+        // of throwing, so callers' cleanup (sgx_fclose + Remove) runs and no file
+        // handle is leaked and no orphan data file is left behind.
+        return false;
+    }
 
     return true;
 }
@@ -139,7 +146,7 @@ std::optional<FileMetaData> FileMetaData::FromFile(const std::string& path_name)
     try {
         PlainFileReader reader(path_name);
         file_content = reader.ReadAllBytes();
-    } catch (FileSystemException e) {
+    } catch (const FileSystemException& e) {
         return std::nullopt;
     }
 

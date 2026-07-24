@@ -12,7 +12,9 @@ LogMessage& LogMessage::operator<<(const std::string& value) {
 }
 
 LogMessage& LogMessage::operator<<(const char* value) {
-    message_ += value;
+    if (value) {
+        message_ += value;
+    }
     return *this;
 }
 

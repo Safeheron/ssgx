@@ -43,7 +43,7 @@ static ErrorCode MapErrorCode(HttpError internal_error) {
         return ErrorCode::VerifyCertFailed;
     case HttpError::ConnectFailed:
         return ErrorCode::ConnectFailed;
-    case HttpError::WriteFaild:
+    case HttpError::WriteFailed:
         return ErrorCode::WriteFailed;
     case HttpError::ReadFailed:
         return ErrorCode::ReadFailed;
@@ -181,7 +181,7 @@ Result Client::SendRequest(const std::string& method, const std::string& path, c
 
     auto resp = std::make_unique<Response>();
     resp->SetStatusCode(static_cast<HttpStatusCode>(resp_data.statusCode));
-    resp->SetBody(std::string(resp_data.content.data(), resp_data.content.size()));
+    resp->SetBody(resp_data.content.data(), resp_data.content.size());
 
     for (const auto& item : resp_data.headers) {
         resp->SetHeader(item.name, item.value);

@@ -1,3 +1,6 @@
+#ifndef SSGX_UTILS_T_TIME_TIME_IMPL_H
+#define SSGX_UTILS_T_TIME_TIME_IMPL_H
+
 #include <time.h>
 
 #ifdef __cplusplus
@@ -12,3 +15,5 @@ int __secs_to_tm(long long, struct tm*);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
+
+#endif // SSGX_UTILS_T_TIME_TIME_IMPL_H

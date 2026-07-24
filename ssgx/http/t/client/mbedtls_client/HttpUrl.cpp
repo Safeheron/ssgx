@@ -204,7 +204,9 @@ void HttpUrl::parse_(const std::string& str) {
             }
             break;
         case IPV6Hostname:
-            abort();
+            valid = false;
+            url = Url();
+            break;
         case PortOrPassword:
             if (isdigit(ch)) {
                 portOrPassword += ch;

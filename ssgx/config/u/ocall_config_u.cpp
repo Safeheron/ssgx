@@ -315,6 +315,13 @@ extern "C" int32_t ssgx_ocall_toml_seal_in_place(uint64_t ref_toml_file, const c
         return -11;
     }
 
+    // Defensive: refuse if a sibling "sealed" key already exists, otherwise renaming
+    // secret->sealed would create two "sealed" keys — the file would then fail to parse
+    // while the plaintext has already been replaced. Bail out without touching the AST.
+    if (parent_tbl.find("sealed") != parent_tbl.end()) {
+        return -12;
+    }
+
     // ordered_map is vector<pair<Key,Val>> — rename in-place to preserve key position
     it->first = "sealed";
     auto comments = it->second.comments();

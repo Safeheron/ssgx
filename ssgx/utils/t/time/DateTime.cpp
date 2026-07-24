@@ -74,7 +74,7 @@ DateTime::DateTime(time_t timestamp) noexcept : timestamp_(timestamp) {
 DateTime::DateTime(int num_year, int num_month, int num_day, int num_hour, int num_min, int num_sec) {
     bool ok = false;
 
-    ok = (num_year >= 1900);
+    ok = (num_year >= 1900 && num_year <= 9999);
     if (!ok)
         throw std::invalid_argument("Invalid num_year!");
 
@@ -82,7 +82,12 @@ DateTime::DateTime(int num_year, int num_month, int num_day, int num_hour, int n
     if (!ok)
         throw std::invalid_argument("Invalid num_month!");
 
-    ok = (num_day >= 1 && num_day <= 31);
+    // Validate the day against the actual length of the month (leap-aware for February),
+    // otherwise invalid dates like Feb 31 pass and __tm_to_secs silently normalizes them.
+    static const int kDaysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    bool is_leap = (num_year % 4 == 0 && (num_year % 100 != 0 || num_year % 400 == 0));
+    int max_day = (num_month == 2 && is_leap) ? 29 : kDaysInMonth[num_month - 1];
+    ok = (num_day >= 1 && num_day <= max_day);
     if (!ok)
         throw std::invalid_argument("Invalid num_day!");
 

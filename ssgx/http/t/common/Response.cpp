@@ -25,14 +25,17 @@ const TypeHeaders& Response::Headers() const {
     return headers_;
 }
 
-void Response::SetHeader(const std::string& key, const std::string& val) {
-    if (!detail::HasCRLF(key) && !detail::HasCRLF(val)) {
-        headers_.emplace(key, val);
+bool Response::SetHeader(const std::string& key, const std::string& val) {
+    if (detail::HasCRLF(key) || detail::HasCRLF(val)) {
+        return false;
     }
+    // emplace does not overwrite an existing key; .second is false when the key
+    // is already present, so a duplicate key is reported as a failure.
+    return headers_.emplace(key, val).second;
 }
 
-void Response::SetHeader(const std::string& key, int64_t val) {
-    SetHeader(key, std::to_string(val));
+bool Response::SetHeader(const std::string& key, int64_t val) {
+    return SetHeader(key, std::to_string(val));
 }
 
 bool Response::HasHeader(const std::string& key) const {
@@ -40,7 +43,8 @@ bool Response::HasHeader(const std::string& key) const {
 }
 
 std::string Response::GetHeaderValue(const std::string& key, const char* def) const {
-    return detail::GetHeaderValue(headers_, key, "");
+    const char* v = detail::GetHeaderValue(headers_, key, def);
+    return v ? std::string(v) : std::string();
 }
 
 uint64_t Response::GetHeaderValueUint64(const std::string& key, uint64_t def) const {
@@ -51,7 +55,7 @@ void Response::SetBody(const char* buf, size_t buf_len) {
     if (buf && buf_len > 0) {
         body_.assign(buf, buf_len);
     } else {
-        body_ == "";
+        body_ = "";
     }
 }
 
@@ -64,25 +68,26 @@ const std::string& Response::Body() const {
 }
 
 bool Response::FromJsonStrWithoutBody(const std::string& json_str) {
-    nlohmann::json root_obj;
+    // Whole body inside try/catch: parse and the subsequent get<>()/iteration can throw on
+    // wrong-typed input; return false instead of letting the exception escape.
     try {
-        root_obj = nlohmann::json::parse(json_str);
+        nlohmann::json root_obj = nlohmann::json::parse(json_str);
+
+        if (root_obj.contains("status_code") && !root_obj["status_code"].is_null()) {
+            SetStatusCode(static_cast<HttpStatusCode>(root_obj["status_code"].get<unsigned short>()));
+        }
+
+        if (root_obj.contains("headers") && !root_obj["headers"].is_null()) {
+            nlohmann::json headers_obj = root_obj["headers"];
+            for (auto it = headers_obj.begin(); it != headers_obj.end(); ++it) {
+                SetHeader(it.key(), it.value().get<std::string>());
+            }
+        }
+
+        return true;
     } catch (const std::exception& e) {
         return false;
     }
-
-    if (root_obj.contains("status_code") && !root_obj["status_code"].is_null()) {
-        SetStatusCode(static_cast<HttpStatusCode>(root_obj["status_code"].get<unsigned short>()));
-    }
-
-    if (root_obj.contains("headers") && !root_obj["headers"].is_null()) {
-        nlohmann::json headers_obj = root_obj["headers"];
-        for (auto it = headers_obj.begin(); it != headers_obj.end(); ++it) {
-            SetHeader(it.key(), it.value().get<std::string>());
-        }
-    }
-
-    return true;
 }
 
 bool Response::ToJsonStrWithoutBody(std::string& json_str) const {

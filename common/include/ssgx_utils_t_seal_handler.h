@@ -72,6 +72,10 @@ class SealHandler {
      * @param length Length of the additional data.
      */
     void SetAdditionalMacText(const uint8_t* mac_text, uint32_t length) {
+        if (mac_text == nullptr || length == 0) {
+            additional_mac_text_.clear();
+            return;
+        }
         additional_mac_text_.assign(mac_text, mac_text + length);
     }
 

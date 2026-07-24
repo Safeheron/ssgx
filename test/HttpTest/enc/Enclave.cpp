@@ -173,6 +173,72 @@ TEST(HttpServerTestSuite, Post_Request_Throw_Exception) {
     ASSERT_EQ(result->StatusCode(), ssgx::http_t::HttpStatusCode::InternalServerError500);
 }
 
+// Unit tests for the bool-return semantics of SetHeader/SetParam introduced in 961aa74:
+// a duplicate key or a CR/LF-bearing key/value returns false; a successful set returns true.
+// Pure local-object tests; no running server needed.
+TEST(HttpSetterSuite, RequestSetHeader_SuccessAndDuplicate) {
+    Request req;
+    ASSERT_TRUE(req.SetHeader("k", "v1"));
+    ASSERT_FALSE(req.SetHeader("k", "v2"));   // duplicate key rejected
+    ASSERT_EQ("v1", req.GetHeaderValue("k")); // first value kept (no overwrite)
+}
+
+TEST(HttpSetterSuite, RequestSetHeader_RejectsCRLF) {
+    Request req;
+    ASSERT_FALSE(req.SetHeader("bad\r\nkey", "v"));
+    ASSERT_FALSE(req.SetHeader("k", "bad\nval"));
+    ASSERT_FALSE(req.HasHeader("k"));
+}
+
+TEST(HttpSetterSuite, RequestSetHeader_Int64) {
+    Request req;
+    ASSERT_TRUE(req.SetHeader("n", (int64_t)42));
+    ASSERT_FALSE(req.SetHeader("n", (int64_t)43));
+    ASSERT_EQ("42", req.GetHeaderValue("n"));
+}
+
+TEST(HttpSetterSuite, RequestSetParam_SuccessAndDuplicate) {
+    Request req;
+    ASSERT_TRUE(req.SetParam("p", "v1"));
+    ASSERT_FALSE(req.SetParam("p", "v2"));
+    ASSERT_EQ("v1", req.GetParamValue("p"));
+}
+
+TEST(HttpSetterSuite, RequestSetParam_RejectsCRLF) {
+    Request req;
+    ASSERT_FALSE(req.SetParam("bad\rkey", "v"));
+    ASSERT_FALSE(req.SetParam("p", "bad\r\nval"));
+    ASSERT_FALSE(req.HasParam("p"));
+}
+
+TEST(HttpSetterSuite, RequestSetParam_Int64) {
+    Request req;
+    ASSERT_TRUE(req.SetParam("n", (int64_t)1));
+    ASSERT_FALSE(req.SetParam("n", (int64_t)2));
+    ASSERT_EQ("1", req.GetParamValue("n"));
+}
+
+TEST(HttpSetterSuite, ResponseSetHeader_SuccessAndDuplicate) {
+    Response resp;
+    ASSERT_TRUE(resp.SetHeader("k", "v1"));
+    ASSERT_FALSE(resp.SetHeader("k", "v2"));
+    ASSERT_EQ("v1", resp.GetHeaderValue("k"));
+}
+
+TEST(HttpSetterSuite, ResponseSetHeader_RejectsCRLF) {
+    Response resp;
+    ASSERT_FALSE(resp.SetHeader("bad\r\nkey", "v"));
+    ASSERT_FALSE(resp.SetHeader("k", "bad\nval"));
+    ASSERT_FALSE(resp.HasHeader("k"));
+}
+
+TEST(HttpSetterSuite, ResponseSetHeader_Int64) {
+    Response resp;
+    ASSERT_TRUE(resp.SetHeader("n", (int64_t)7));
+    ASSERT_FALSE(resp.SetHeader("n", (int64_t)8));
+    ASSERT_EQ("7", resp.GetHeaderValue("n"));
+}
+
 int ecall_run_server(int alive_time_sec) {
     Server srv;
     std::string url = "http://0.0.0.0:83";

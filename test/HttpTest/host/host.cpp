@@ -37,6 +37,8 @@ int SGX_CDECL main(int argc, char* argv[]) {
     int ret = 0;
     sgx_status_t sgx_status = SGX_SUCCESS;
     bool ok = true;
+    pthread_t pthread;
+    bool server_thread_started = false;
 
     printf("Try to create testing enclave ...\n");
     sgx_status = sgx_create_enclave((const char*)argv[1], 0, nullptr, nullptr, &test_enclave_id, nullptr);
@@ -55,7 +57,7 @@ int SGX_CDECL main(int argc, char* argv[]) {
 
     // Initialize SSGXLogger
     try {
-        ssgx::log_u::SSGXLogger::GetInstance().Init("PROJECT_NAME", "/opt/logs/tee-log/log-safeheron-mpc-engine",
+        ssgx::log_u::SSGXLogger::GetInstance().Init("PROJECT_NAME", "/tmp/log-safeheron-mpc-engine",
                                                     ssgx::log_u::LogLevel::INFO, true);
     } catch (const std::exception& e) {
         printf("--->Failed to initialize logger: %s\n", e.what());
@@ -64,8 +66,8 @@ int SGX_CDECL main(int argc, char* argv[]) {
     }
 
     // Run server in child thread
-    pthread_t pthread;
     pthread_create(&pthread, nullptr, server_thread_func, nullptr);
+    server_thread_started = true;
 
     sleep(2);
 
@@ -79,8 +81,11 @@ int SGX_CDECL main(int argc, char* argv[]) {
     printf("\nExit from function ecall_run_client()!\n");
 
 _exit:
-    // Waiting for server exit
-    pthread_join(pthread, nullptr);
+    // Waiting for server exit (only if the server thread was actually created;
+    // an early goto here would otherwise join an uninitialized pthread handle).
+    if (server_thread_started) {
+        pthread_join(pthread, nullptr);
+    }
     sgx_destroy_enclave(test_enclave_id);
     printf("End!\n\n");
 
